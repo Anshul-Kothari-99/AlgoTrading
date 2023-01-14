@@ -9,20 +9,23 @@ import csv
 import pandas as pd
 import datetime
 
-testcases_file_path= "D:\\Python Scripts\\shares Analysis\\Nifty_50_data\\15minute_interval_NIFTY50.csv"
+testcases_file_path= "C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\NIFTY 50_15minute.csv"
 
 with open(testcases_file_path, mode="r") as inputFile:
     inputReader = csv.DictReader(inputFile)
     
-    df = pd.DataFrame(inputReader)
-    df.date = pd.to_datetime(df.date)
-    df.rename(columns = {"date":"dt"},inplace=True)
+    df = pd.DataFrame(inputReader)    
+    df['temp'] = df['Date'] + ' ' + df ['Time']
+    df.rename(columns = {"temp":"dt", "Open":"open", "High":"high", "Low":"low", "Close":"close"},inplace=True)
+    df.dt = pd.to_datetime(df.dt)
+    df.drop(['Date', 'Time', 'Volume'], axis=1, inplace=True)
     df['high'] = df['high'].astype(float)
     df['low'] = df['low'].astype(float)
     df['close'] = df['close'].astype(float)
     df['open'] = df['open'].astype(float)    
+    df = df[-5000:]
     #print(df.head())
-    #print(len(df))
+    #print(df.shape)
 
 result = []
 result_summary = []
@@ -48,6 +51,10 @@ call_target_hit = 0
 call_sl_hit = 0
 put_target_hit = 0
 put_sl_hit = 0
+support = 0
+entry_price = 0
+target_price = 0
+stoploss = 0
 
 next_day_support = -1
 next_day_resistance = -1
@@ -84,7 +91,7 @@ for i in range(len(df)):
                 trade = 1
                 buy = 1
                 entry_price = df.iloc[i]['close']
-                target_price = entry_price * 1.01
+                target_price = entry_price * 1.008
                 stoploss = entry_price * 0.996
                 trade_status = 1
                 print("Call - Buy")
@@ -109,7 +116,7 @@ for i in range(len(df)):
                 sell = 1
                 trade = 1
                 entry_price = df.iloc[i]['close']
-                target_price = entry_price * 0.99
+                target_price = entry_price * 0.992
                 stoploss = entry_price * 1.004
                 trade_status = 11
                 print("Put - Buy")
