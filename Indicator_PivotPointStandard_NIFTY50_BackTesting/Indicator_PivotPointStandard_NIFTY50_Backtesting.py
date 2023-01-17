@@ -23,7 +23,7 @@ with open(testcases_file_path, mode="r") as inputFile:
     df['low'] = df['low'].astype(float)
     df['close'] = df['close'].astype(float)
     df['open'] = df['open'].astype(float)    
-    df = df[-5000:]
+    df = df[-20000:]
     #print(df.head())
     #print(df.shape)
 
@@ -43,6 +43,11 @@ df = df[x:]
 # sunday - 6
 #condition: df.iloc[i]["dt"].date().weekday() != 6 and df.iloc[i]["dt"].date().weekday() != 5
 
+target_percentage_of_profit_for_call = 0.94
+target_percentage_of_sl_for_call = 0.5
+
+target_percentage_of_profit_for_put = 0.85
+target_percentage_of_sl_for_put = 0.535 #0.54
 
 resistance = -1
 intraday_call_close = []
@@ -58,6 +63,7 @@ stoploss = 0
 
 next_day_support = -1
 next_day_resistance = -1
+count_no_trades = 0
 
 current_date = df.iloc[0]["dt"].date()
 
@@ -97,8 +103,8 @@ for i in range(len(df)):
                 trade = 1
                 buy = 1
                 entry_price = df.iloc[i]['close']
-                target_price = entry_price * 1.01
-                stoploss = entry_price * 0.996
+                target_price = entry_price * ((100+target_percentage_of_profit_for_call)/100)
+                stoploss = entry_price * ((100-target_percentage_of_sl_for_call)/100)
                 trade_status = 1
                 print("Call - Buy")
                 
@@ -128,8 +134,8 @@ for i in range(len(df)):
                 sell = 1
                 trade = 1
                 entry_price = df.iloc[i]['close']
-                target_price = entry_price * 0.99
-                stoploss = entry_price * 1.004
+                target_price = entry_price * ((100-target_percentage_of_profit_for_put)/100)
+                stoploss = entry_price * ((100+target_percentage_of_sl_for_put)/100)
                 trade_status = 11
                 print("Put - Buy")
             
@@ -177,7 +183,18 @@ for i in range(len(df)):
             close = df.iloc[i]["close"]
             print("Close Price recorded = ", close)
             
-            result.append([current_date, close, resistance, support, entry_price, stoploss, target_price, trade_status_encoding[trade_status]])
+            result.append([current_date, 
+                           close, 
+                           resistance, 
+                           support, 
+                           entry_price, 
+                           stoploss, 
+                           target_price, 
+                           trade_status_encoding[trade_status]])
+            
+            if trade_status == -1:
+                count_no_trades += 1
+                print(trade_status_encoding[trade_status])
 
             p = (high + low + close)/3
             next_day_resistance = (p*2) - low
@@ -201,29 +218,41 @@ for i in range(len(df)):
                 #print("One Time Registration")
                 resistance = next_day_resistance
                 support = next_day_support
-        
+
+print('****************************** SUMMARY **************************************\n')        
 print("Count of Call Target Hits = ", call_target_hit)
 result_summary.append(["Count of Call Target Hits = ", call_target_hit])
 try:
-    avg = sum(intraday_call_close)/len(intraday_call_close)*100
+    avg_call = sum(intraday_call_close)/len(intraday_call_close)*100
 except: 
-    avg = 'Failed'
+    avg_call = 'Failed'
     pass
-print("Count of Call closed for Intraday = ", len(intraday_call_close), "Avg % = ", avg)
-result_summary.append(["Count of Call closed for Intraday = ", len(intraday_call_close), "Avg % = ", avg])
+print("Count of Call closed for Intraday = ", len(intraday_call_close), "Avg % = ", avg_call)
+result_summary.append(["Count of Call closed for Intraday = ", len(intraday_call_close), "Avg % = ", avg_call])
 print("Count of Call StopLoss Hits = ", call_sl_hit)
 result_summary.append(["Count of Call StopLoss Hits = ", call_sl_hit])
 print("Count of Put Target Hits = ", put_target_hit)
 result_summary.append(["Count of Put Target Hits = ", put_target_hit])
 try:
-    avg = sum(intraday_put_close)/len(intraday_put_close)*100 
+    avg_put = sum(intraday_put_close)/len(intraday_put_close)*100 
 except: 
-    avg = 'Failed'
+    avg_put = 'Failed'
     pass
-print("Count of Put closed for Intraday = ", len(intraday_put_close), "Avg % = ", avg)
-result_summary.append(["Count of Put closed for Intraday = ", len(intraday_put_close), "Avg % = ", avg])
+print("Count of Put closed for Intraday = ", len(intraday_put_close), "Avg % = ", avg_put)
+result_summary.append(["Count of Put closed for Intraday = ", len(intraday_put_close), "Avg % = ", avg_put])
 print("Count of Put StopLoss Hits = ", put_sl_hit)
 result_summary.append(["Count of Put StopLoss Hits = ", put_sl_hit])
+
+print("\nTimes when No Trades were Taken = ", count_no_trades)
+result_summary.append(["Count of No Trades Taken = ", count_no_trades])
+net_call = (len(intraday_call_close) * avg_call) + (call_target_hit*target_percentage_of_profit_for_call) - (call_sl_hit*target_percentage_of_sl_for_call)
+print("Net Call Returns = ", net_call)
+result_summary.append(["Net Call Returns = ", net_call])
+net_put = (len(intraday_put_close) * avg_put) + (put_target_hit*target_percentage_of_profit_for_put) - (put_sl_hit*target_percentage_of_sl_for_put)
+print("Net Put Returns = ", net_put)
+result_summary.append(["Net Put Returns = ", net_put])
+print("Net Results = ", net_call + net_put)
+result_summary.append(["Net Results = ", net_call + net_put])
 
 with open('C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\Results.csv', 'w') as OutputFile:
     # using csv.writer method from CSV package
@@ -232,4 +261,5 @@ with open('C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_Piv
     write.writerows(result[1:])
     write.writerows(result_summary)    
 
-print("\nReport Generated Successfully!!!")
+print("\n*********************************************************************\n")
+print("Report Generated Successfully!!!")
