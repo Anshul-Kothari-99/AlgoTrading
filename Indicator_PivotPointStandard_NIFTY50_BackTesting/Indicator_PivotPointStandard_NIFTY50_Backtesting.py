@@ -87,7 +87,13 @@ for i in range(len(df)):
             resistance = next_day_resistance
             support = next_day_support
             
-            if df.iloc[i]['close'] > resistance and trade == 0 and df.iloc[i]["dt"].time() != datetime.time(15,15,0) and buy != 1 and sell != 1:
+            if (df.iloc[i]['close'] > resistance 
+            and trade == 0 and buy != 1 and sell != 1
+            and df.iloc[i]["dt"].time() != datetime.time(15,10,0) 
+            and df.iloc[i]["dt"].time() != datetime.time(15,5,0) 
+            and df.iloc[i]["dt"].time() != datetime.time(15,0,0)
+            and df.iloc[i]["dt"].time() != datetime.time(14,55,0)
+            ):
                 trade = 1
                 buy = 1
                 entry_price = df.iloc[i]['close']
@@ -112,7 +118,13 @@ for i in range(len(df)):
                     print("Call Stoploss Hit")
                     
                     
-            if df.iloc[i]['close'] < support and trade == 0 and df.iloc[i]["dt"].time() != datetime.time(15,15,0)  and buy != 1 and sell != 1:
+            if (df.iloc[i]['close'] < support 
+            and trade == 0 and buy != 1 and sell != 1
+            and df.iloc[i]["dt"].time() != datetime.time(15,10,0) 
+            and df.iloc[i]["dt"].time() != datetime.time(15,5,0) 
+            and df.iloc[i]["dt"].time() != datetime.time(15,0,0)
+            and df.iloc[i]["dt"].time() != datetime.time(14,55,0)
+            ):
                 sell = 1
                 trade = 1
                 entry_price = df.iloc[i]['close']
@@ -137,7 +149,7 @@ for i in range(len(df)):
                     print("Put Stoploss Hit")
                     
                 
-            if buy == 1 and sell == 0 and trade == 1 and df.iloc[i]["dt"].time() == datetime.time(15,0,0):
+            if buy == 1 and sell == 0 and trade == 1 and df.iloc[i]["dt"].time() == datetime.time(15,10,0):
                 sell = 1
                 trade = 0
                 profit_percentage = (df.iloc[i]['close'] - entry_price)/entry_price
@@ -146,7 +158,7 @@ for i in range(len(df)):
                 print("IntraDay Timeout - Call Entry Closed")
                 
                 
-            if buy == 0 and sell == 1 and trade == 1 and df.iloc[i]["dt"].time() == datetime.time(15,0,0):
+            if buy == 0 and sell == 1 and trade == 1 and df.iloc[i]["dt"].time() == datetime.time(15,10,0):
                 buy = 1
                 trade = 0
                 profit_percentage = (entry_price - df.iloc[i]['close'])/entry_price
@@ -161,7 +173,7 @@ for i in range(len(df)):
             low = df.iloc[i]["low"]            # Day low
             #print('resistance_temp_low = ', low)
         
-        if (df.iloc[i]["dt"].time() == datetime.time(15,15,0)):
+        if (df.iloc[i]["dt"].time() == datetime.time(15,25,0)):
             close = df.iloc[i]["close"]
             print("Close Price recorded = ", close)
             
