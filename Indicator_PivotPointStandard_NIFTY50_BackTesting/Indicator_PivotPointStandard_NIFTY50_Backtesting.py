@@ -9,7 +9,7 @@ import csv
 import pandas as pd
 import datetime
 
-testcases_file_path= "C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\NIFTY 50_15minute.csv"
+testcases_file_path= "C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\NIFTY 50_5minute.csv"
 
 with open(testcases_file_path, mode="r") as inputFile:
     inputReader = csv.DictReader(inputFile)
@@ -97,7 +97,7 @@ for i in range(len(df)):
                 trade = 1
                 buy = 1
                 entry_price = df.iloc[i]['close']
-                target_price = entry_price * 1.008
+                target_price = entry_price * 1.01
                 stoploss = entry_price * 0.996
                 trade_status = 1
                 print("Call - Buy")
@@ -128,7 +128,7 @@ for i in range(len(df)):
                 sell = 1
                 trade = 1
                 entry_price = df.iloc[i]['close']
-                target_price = entry_price * 0.992
+                target_price = entry_price * 0.99
                 stoploss = entry_price * 1.004
                 trade_status = 11
                 print("Put - Buy")
