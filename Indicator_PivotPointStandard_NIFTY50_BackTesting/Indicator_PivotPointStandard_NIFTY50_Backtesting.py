@@ -44,10 +44,10 @@ df = df[x:]
 #condition: df.iloc[i]["dt"].date().weekday() != 6 and df.iloc[i]["dt"].date().weekday() != 5
 
 target_percentage_of_profit_for_call = 0.94
-target_percentage_of_sl_for_call = 0.5
+target_percentage_of_sl_for_call = 0.495
 
 target_percentage_of_profit_for_put = 0.85
-target_percentage_of_sl_for_put = 0.535 #0.54
+target_percentage_of_sl_for_put = 0.535 #0.535 #0.54
 
 resistance = -1
 intraday_call_close = []
@@ -66,6 +66,10 @@ next_day_resistance = -1
 count_no_trades = 0
 
 current_date = df.iloc[0]["dt"].date()
+call_target_hit_dates = []
+call_sl_hit_dates = []
+put_target_hit_dates = []
+put_sl_hit_dates = []
 
 high = 0
 low = 99999
@@ -115,14 +119,15 @@ for i in range(len(df)):
                     trade = 0
                     call_target_hit = call_target_hit + 1
                     trade_status = 2
+                    call_target_hit_dates.append(str(current_date))
                     print("Call Target Hit")
                 if (df.iloc[i]['low'] < stoploss):
                     sell = 1
                     trade = 0
                     call_sl_hit = call_sl_hit + 1
                     trade_status = 3
-                    print("Call Stoploss Hit")
-                    
+                    call_sl_hit_dates.append(str(current_date))
+                    print("Call Stoploss Hit")                    
                     
             if (df.iloc[i]['close'] < support 
             and trade == 0 and buy != 1 and sell != 1
@@ -146,14 +151,15 @@ for i in range(len(df)):
                     trade = 0
                     put_target_hit = put_target_hit + 1
                     trade_status = 12
+                    put_target_hit_dates.append(str(current_date))
                     print("Put Target Hit")
                 if (df.iloc[i]['high'] > stoploss):
                     buy = 1
                     trade = 0
                     put_sl_hit = put_sl_hit + 1
                     trade_status = 13
+                    put_sl_hit_dates.append(str(current_date))
                     print("Put Stoploss Hit")
-                    
                 
             if buy == 1 and sell == 0 and trade == 1 and df.iloc[i]["dt"].time() == datetime.time(15,10,0):
                 sell = 1
@@ -251,8 +257,13 @@ result_summary.append(["Net Call Returns = ", net_call])
 net_put = (len(intraday_put_close) * avg_put) + (put_target_hit*target_percentage_of_profit_for_put) - (put_sl_hit*target_percentage_of_sl_for_put)
 print("Net Put Returns = ", net_put)
 result_summary.append(["Net Put Returns = ", net_put])
-print("Net Results = ", net_call + net_put)
+print("Net Returns = ", net_call + net_put)
 result_summary.append(["Net Results = ", net_call + net_put])
+
+print("\nDates on which Call Targets got Hit", call_target_hit_dates)
+print("\nDates on which Call SL got Hit", call_sl_hit_dates)
+print("\nDates on which Put Targets got Hit", put_target_hit_dates)
+print("\nDates on which Put SL got Hit", put_sl_hit_dates)
 
 with open('C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\Results.csv', 'w') as OutputFile:
     # using csv.writer method from CSV package
