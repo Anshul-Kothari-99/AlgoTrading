@@ -15,8 +15,8 @@ with open(testcases_file_path, mode="r") as inputFile:
     inputReader = csv.DictReader(inputFile)
     
     df = pd.DataFrame(inputReader)    
-    df['temp'] = df['Date'] + ' ' + df ['Time']
-    df.rename(columns = {"temp":"dt", "Open":"open", "High":"high", "Low":"low", "Close":"close"},inplace=True)
+    df['dt'] = df['Date'] + ' ' + df ['Time']
+    df.rename(columns = {"Open":"open", "High":"high", "Low":"low", "Close":"close"},inplace=True)
     df.dt = pd.to_datetime(df.dt)
     df.drop(['Date', 'Time', 'Volume'], axis=1, inplace=True)
     df['high'] = df['high'].astype(float)
