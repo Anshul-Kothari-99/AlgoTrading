@@ -18,8 +18,9 @@ failed_for =[]
 count = 0
 
 # HyperParameters - to be tunned
-target_percentage_of_profit_for_call = 0.94  #0.94
+target_percentage_of_profit_for_call = 0.92  #0.92 with 1.0002 confirmation factor #0.94
 target_percentage_of_sl_for_call = 0.495  #0.495
+call_confirmation = 1.0002
 
 target_percentage_of_profit_for_put = 0.85   #0.85
 target_percentage_of_sl_for_put = 0.535  #0.535 #0.54
@@ -78,6 +79,7 @@ for stock in files_list[:1]:
         current_date = df.iloc[0]["dt"].date()
         call_target_hit_dates = []
         call_sl_hit_dates = []
+        call_close_or_high = 'close'
         put_target_hit_dates = []
         put_sl_hit_dates = []
         
@@ -107,20 +109,26 @@ for stock in files_list[:1]:
                     resistance = next_resistance
                     support = next_support
                     
-                    if (df.iloc[i]['close'] > resistance 
+                    if (df.iloc[i][call_close_or_high] > resistance 
                     and trade == 0 and buy != 1 and sell != 1
                     and df.iloc[i]["dt"].time() != datetime.time(15,10,0) 
                     and df.iloc[i]["dt"].time() != datetime.time(15,5,0) 
                     and df.iloc[i]["dt"].time() != datetime.time(15,0,0)
                     and df.iloc[i]["dt"].time() != datetime.time(14,55,0)
                     ):
-                        trade = 1
-                        buy = 1
-                        entry_price = df.iloc[i]['close']
-                        target_price = entry_price * ((100+target_percentage_of_profit_for_call)/100)
-                        stoploss = entry_price * ((100-target_percentage_of_sl_for_call)/100)
-                        trade_status = 1
-                        #print("Call - Buy")
+                        
+                        if call_close_or_high == 'high':
+                            trade = 1
+                            buy = 1
+                            entry_price = resistance
+                            target_price = entry_price * ((100+target_percentage_of_profit_for_call)/100)
+                            stoploss = entry_price * ((100-target_percentage_of_sl_for_call)/100)
+                            trade_status = 1
+                            #print("Call - Buy")
+                            
+                        if call_close_or_high == 'close':
+                            next_resistance = df.iloc[i]['close'] * call_confirmation
+                            call_close_or_high = 'high'
                         
                     if buy == 1 and sell == 0 and trade == 1:
                         # Call Status Checks
@@ -129,6 +137,7 @@ for stock in files_list[:1]:
                             trade = 0
                             call_target_hit = call_target_hit + 1
                             trade_status = 2
+                            call_close_or_high = 'close'
                             call_target_hit_dates.append(str(current_date))
                             #print("Call Target Hit")
                         if (df.iloc[i]['low'] < stoploss):
@@ -136,6 +145,7 @@ for stock in files_list[:1]:
                             trade = 0
                             call_sl_hit = call_sl_hit + 1
                             trade_status = 3
+                            call_close_or_high = 'close'
                             call_sl_hit_dates.append(str(current_date))
                             #print("Call Stoploss Hit")                    
                             
@@ -177,6 +187,7 @@ for stock in files_list[:1]:
                         profit_percentage = (df.iloc[i]['close'] - entry_price)/entry_price
                         intraday_call_close.append(profit_percentage)
                         trade_status = 4
+                        call_close_or_high = 'close'
                         #print("IntraDay Timeout - Call Entry Closed")
                         
                         
@@ -222,6 +233,7 @@ for stock in files_list[:1]:
                     buy = 0
                     sell = 0
                     trade_status = -1
+                    call_close_or_high = 'close'
                     #print("Current Date :- ", current_date)
                     try:
                         current_date = df.iloc[i+1]["dt"].date()
@@ -291,12 +303,12 @@ for stock in files_list[:1]:
         result_summary.append(["Net Results = ", net_call + net_put])
         '''
         
-        '''
+        
         print("\nDates on which Call Targets got Hit", call_target_hit_dates)
         print("\nDates on which Call SL got Hit", call_sl_hit_dates)
         print("\nDates on which Put Targets got Hit", put_target_hit_dates)
         print("\nDates on which Put SL got Hit", put_sl_hit_dates)
-        '''
+        
         
         result_summary_for_NSE_stocks.append([stock[:-7],
                                               call_target_hit, 
