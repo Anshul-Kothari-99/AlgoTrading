@@ -8,9 +8,6 @@ Created on Thu Jan 12 23:45:15 2023
 import csv
 import pandas as pd
 import datetime
-
-#testcases_file_path= "C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\NIFTY 50_5minute.csv"
-
 from os import walk
 
 mypath = "D:\\NSE_Stocks_5m_hist_data\\"
@@ -20,8 +17,16 @@ result_summary_for_NSE_stocks = []
 failed_for =[]
 count = 0
 
-for stock in files_list:
+# HyperParameters - to be tunned
+target_percentage_of_profit_for_call = 0.94  #0.94
+target_percentage_of_sl_for_call = 0.495  #0.495
+
+target_percentage_of_profit_for_put = 0.85   #0.85
+target_percentage_of_sl_for_put = 0.535  #0.535 #0.54
+
+for stock in files_list[:1]:
     testcases_file_path = mypath + stock
+    testcases_file_path = "C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\NIFTY 50_5minute.csv"
     count+=1
     
     try:
@@ -37,10 +42,8 @@ for stock in files_list:
             df['low'] = df['low'].astype(float)
             df['close'] = df['close'].astype(float)
             df['open'] = df['open'].astype(float)    
-            #df = df[-20000:]
-            df = df[:2240]
-            #print(df.head())
-            #print(df.shape)
+            df = df[-20000:]    # Uncomment for NSE Analysis
+            #print(df)
         
         result = []
         result_summary = []
@@ -48,22 +51,14 @@ for stock in files_list:
         x = 0
         
         while df.iloc[x]['dt'].time() != datetime.time(9,15,0):
-            x+=1
-        
+            x += 1
         df = df[x:]
-        #print(df.head())
         
-        #print(datetime.date(2015,2,16).weekday(), datetime.date(2015,2,16))
+        # print(datetime.date(2015,2,16).weekday(), datetime.date(2015,2,16))
         # saturday - 5
         # sunday - 6
-        #condition: df.iloc[i]["dt"].date().weekday() != 6 and df.iloc[i]["dt"].date().weekday() != 5
-        
-        target_percentage_of_profit_for_call = 0.94
-        target_percentage_of_sl_for_call = 0.495
-        
-        target_percentage_of_profit_for_put = 0.85
-        target_percentage_of_sl_for_put = 0.535 #0.535 #0.54
-        
+        # condition: df.iloc[i]["dt"].date().weekday() != 6 and df.iloc[i]["dt"].date().weekday() != 5
+                
         resistance = -1
         intraday_call_close = []
         intraday_put_close = []
@@ -107,8 +102,8 @@ for stock in files_list:
         
         for i in range(len(df)):
             if df.iloc[i]["dt"].date() == current_date:        
-                if (resistance != -1):  
-                    #print("resistance if-check passed")
+                if (resistance != -1):
+                    # Check if resistance check is passed
                     resistance = next_day_resistance
                     support = next_day_support
                     
@@ -128,7 +123,7 @@ for stock in files_list:
                         #print("Call - Buy")
                         
                     if buy == 1 and sell == 0 and trade == 1:
-                        #print("Call status checks")
+                        # Call Status Checks
                         if (df.iloc[i]['high'] > target_price):
                             sell = 1
                             trade = 0
@@ -160,7 +155,7 @@ for stock in files_list:
                         #print("Put - Buy")
                     
                     if buy == 0 and sell == 1 and trade == 1:
-                        #print("put status check")
+                        # Put Status Check
                         if (df.iloc[i]['low'] < target_price):
                             buy = 1
                             trade = 0
@@ -203,7 +198,7 @@ for stock in files_list:
                 if (df.iloc[i]["dt"].time() == datetime.time(15,25,0)):
                     close = df.iloc[i]["close"]
                     #print("Close Price recorded = ", close)
-                    
+                    '''
                     result.append([current_date, 
                                    close, 
                                    resistance, 
@@ -212,6 +207,7 @@ for stock in files_list:
                                    stoploss, 
                                    target_price, 
                                    trade_status_encoding[trade_status]])
+                    '''
                     
                     if trade_status == -1:
                         count_no_trades += 1
@@ -236,11 +232,11 @@ for stock in files_list:
                     #print("\n")
                     
                     if resistance == -1:
-                        #print("One Time Registration")
+                        #print("One/Fisrt Time Assignment")
                         resistance = next_day_resistance
                         support = next_day_support
         
-        print('*********',count, ' - ' + stock + ' *********')
+        print('*********', count, ' - ' + stock + ' *********')
         '''      
         print("Count of Call Target Hits = ", call_target_hit)
         result_summary.append(["Count of Call Target Hits = ", call_target_hit])
