@@ -2,14 +2,15 @@
 """
 Created on Tue Jan 31 23:06:17 2023
 
-@author: kotha
+@author: Anshul Kothari
 """
 
 import yfinance as yf
 from datetime import datetime, timedelta
 import csv
+import pandas as pd
 
-Ticker_Names_file_path= ".\\YF_Ticker_Names.csv"
+Ticker_Names_file_path= ".\YF_Ticker_Names.csv"
 
 with open(Ticker_Names_file_path, mode="r") as ticker_names:
     tickers = csv.reader(ticker_names)
@@ -27,6 +28,16 @@ end_date = today_date
 timeframe = '5m'
 
 for ticker in tickers[:5]:
-    data = yf.download(ticker[0], start = start_date, end = end_date, interval = timeframe)
-    print(ticker[0])
-    print(data.head())
+    stock_data = yf.download(ticker[0], start = start_date, end = end_date, interval = timeframe)
+    print('Ticker Name -------------> ', ticker[0])
+    #print(stock_data.shape[0])
+    if stock_data.shape[0] > 0:
+        stock_data = stock_data.reset_index()
+        stock_data['Date'] = pd.to_datetime(stock_data['Datetime']).dt.date
+        stock_data['Time'] = pd.to_datetime(stock_data['Datetime']).dt.time
+        stock_data.drop(['Datetime', 'Volume', 'Adj Close'], axis=1, inplace=True)
+        print(stock_data.head())
+        print('\n')
+        #print(stock_data.columns)
+    else:
+        print('Download Failing for -------------> ', ticker[0], '\n')
