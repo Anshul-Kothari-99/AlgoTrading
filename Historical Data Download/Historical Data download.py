@@ -29,6 +29,7 @@ timeframe = '5m'
 
 failed_for = []
 
+'''
 temp = ['3IINFOTECH.NS', 'ADANIGAS.NS', 'ADHUNIKIND.NS', 'ADLABS.NS', 'AGCNET.NS', 'AGLSL.NS', 'AHLWEST.NS', 'AIONJSW.NS', 
         'ALBK.NS', 'ANDHRABANK.NS', 'ANSALHSG.NS', 'ARIHANT.NS', 'ARROWTEX.NS', 'BARTRONICS.NS', 'BHARATFIN.NS', 
         'BLUEBLENDS.NS', 'BOROSIL.NS', 'BSELINFRA.NS', 'CADILAHC.NS', 'CEBBCO.NS', 'CELESTIAL.NS', 'CESCVENT.NS', 
@@ -47,6 +48,9 @@ temp = ['3IINFOTECH.NS', 'ADANIGAS.NS', 'ADHUNIKIND.NS', 'ADLABS.NS', 'AGCNET.NS
         'TATASPONGE.NS', 'TATASTLBSL.NS', 'TCIDEVELOP.NS', 'TECHNOFAB.NS', 'TMRVL.NS', 'UNIPLY.NS', 'UNITEDBNK.NS', 
         'UTTAMSTL.NS', 'UVSL.NS', 'VIKASMCORP.NS', 'WABCOINDIA.NS', 'WEIZFOREX.NS', 'ZODJRDMKJ.NS', 'ZUARIGLOB.NS']
 
+127 total elements
+'''
+
 for ticker in tickers[:]:
     stock_data = yf.download(ticker[0], start = start_date, end = end_date, interval = timeframe)
     #print('Ticker Name -------------> ', ticker[0])
@@ -55,13 +59,15 @@ for ticker in tickers[:]:
         stock_data = stock_data.reset_index()
         stock_data['Date'] = pd.to_datetime(stock_data['Datetime']).dt.date
         stock_data['Time'] = pd.to_datetime(stock_data['Datetime']).dt.time
-        stock_data.drop(['Datetime', 'Volume', 'Adj Close'], axis=1, inplace=True)
+        stock_data.drop(['Datetime', 'Adj Close'], axis=1, inplace=True)
+        stock_data.to_csv('D:\\NSE_Stocks_5m_hist_data\\' + ticker[0] + ".csv", index=False)
         #print(stock_data.head())
         #print('\n')
         #print(stock_data.columns)
     else:
-        print('Download Failing for -------------> ', ticker[0], '\n')
+        print('Data Download Failed for -------------> ', ticker[0], '\n')
         failed_for.append(ticker[0])
         
 print('************************* Finished *************************\n')
 print(failed_for)
+print('Data Extraction failed for - ',len(failed_for), ' Companies')
