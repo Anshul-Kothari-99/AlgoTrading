@@ -71,8 +71,8 @@ for stock in files_list[:1]:
         target_price = 0
         stoploss = 0
         
-        next_day_support = -1
-        next_day_resistance = -1
+        next_support = -1
+        next_resistance = -1
         count_no_trades = 0
         
         current_date = df.iloc[0]["dt"].date()
@@ -104,8 +104,8 @@ for stock in files_list[:1]:
             if df.iloc[i]["dt"].date() == current_date:        
                 if (resistance != -1):
                     # Check if resistance check is passed
-                    resistance = next_day_resistance
-                    support = next_day_support
+                    resistance = next_resistance
+                    support = next_support
                     
                     if (df.iloc[i]['close'] > resistance 
                     and trade == 0 and buy != 1 and sell != 1
@@ -214,8 +214,8 @@ for stock in files_list[:1]:
                         #print(trade_status_encoding[trade_status])
         
                     p = (high + low + close)/3
-                    next_day_resistance = (p*2) - low
-                    next_day_support = (p*2) - high
+                    next_resistance = (p*2) - low
+                    next_support = (p*2) - high
                     
                     high = 0
                     low = 99999
@@ -233,8 +233,8 @@ for stock in files_list[:1]:
                     
                     if resistance == -1:
                         #print("One/Fisrt Time Assignment")
-                        resistance = next_day_resistance
-                        support = next_day_support
+                        resistance = next_resistance
+                        support = next_support
         
         print('*********', count, ' - ' + stock + ' *********')
         '''      
