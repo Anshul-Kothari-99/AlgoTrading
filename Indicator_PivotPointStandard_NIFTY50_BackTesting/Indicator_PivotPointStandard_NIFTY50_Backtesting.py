@@ -29,10 +29,9 @@ put_confirmation = 0.9998      # 0.9998
 
 timeframe = 5    # Enter Timeframe in minutes(5m/15m/30m only) - enter timeframe less than 30mins
 
-for stock in files_list[:1]:
-    stock = 'NIFTY50_5min.csv'
+for stock in files_list:
+    #stock = 'NIFTY50_5min.csv'
     testcases_file_path = mypath + stock    
-    #testcases_file_path = "C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\NIFTY50_5min.csv"
     count += 1
     
     try:
@@ -48,7 +47,7 @@ for stock in files_list[:1]:
             df['low'] = df['low'].astype(float)
             df['close'] = df['close'].astype(float)
             df['open'] = df['open'].astype(float)    
-            df = df  # To limit the data / Number of days - 1600 = Approx 31 days
+            #df = df[-1600:]  # To limit the data / Number of days - 1600 = Approx 31 days
             #print(df)
         
         result = []
