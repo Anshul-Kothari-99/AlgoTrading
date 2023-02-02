@@ -1,0 +1,3 @@
+Stock Symbol,Bull Harami Count,Bull Harami Dates,Call Target Hits Count,Call closed for Intraday Count,Call Avg %,Call StopLoss Hits Count,Call Targets Hit Dates,Call SL Hit Dates,Call Closed Dates,No Trades Taken Count,Net Call Returns,Starting Date,Last Date,Number of days run
+21STCENMGM,1,[Timestamp('2022-12-05 14:20:00')],0,0,0,0,[],[],[],0,0.0,2022-12-05,2022-12-12,5
+3PLAND,1,[Timestamp('2022-12-07 14:10:00')],0,0,0,0,[],[],[],0,0.0,2022-12-05,2022-12-09,4
