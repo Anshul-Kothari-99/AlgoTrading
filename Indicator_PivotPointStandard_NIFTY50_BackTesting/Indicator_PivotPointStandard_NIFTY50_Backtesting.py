@@ -4,10 +4,11 @@ Created on Thu Jan 12 23:45:15 2023
 
 @author: Anshul Kothari
 """
+import datetime
+init_time = datetime.datetime.now()
 
 import csv
 import pandas as pd
-import datetime
 from os import walk
 
 mypath = "D:\\NSE_Stocks_5m_hist_data\\"
@@ -18,17 +19,19 @@ failed_for =[]
 count = 0
 
 # HyperParameters - to be tunned
-target_percentage_of_profit_for_call = 0.92  #0.92 with 1.0002 confirmation factor #0.94
-target_percentage_of_sl_for_call = 0.495  #0.495
+target_percentage_of_profit_for_call = 1.115  #0.92 with 1.0002 confirmation factor #0.94   1.115
+target_percentage_of_sl_for_call = 0.38  #0.495      0.38
 call_confirmation = 1.0002
 
-target_percentage_of_profit_for_put = 0.85   #0.85
-target_percentage_of_sl_for_put = 0.535  #0.535 #0.54
+target_percentage_of_profit_for_put = 0.89   #0.83 with 0.9998 confirmation factor #0.89
+target_percentage_of_sl_for_put = 0.495  #0.535 #0.54      #495
+put_confirmation = 0.9998      # 0.9998
 
 timeframe = 5    # Enter Timeframe in minutes(5m/15m/30m only) - enter timeframe less than 30mins
 
-for stock in files_list:
-    testcases_file_path = mypath + stock
+for stock in files_list[:1]:
+    stock = 'NIFTY50_5min.csv'
+    testcases_file_path = mypath + stock    
     #testcases_file_path = "C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\NIFTY50_5min.csv"
     count += 1
     
@@ -85,6 +88,7 @@ for stock in files_list:
         call_sl_hit_dates = []
         call_closed_dates = []
         call_close_or_high = 'close'
+        put_close_or_low = 'close'
         put_target_hit_dates = []
         put_sl_hit_dates = []
         put_closed_dates = []
@@ -156,17 +160,23 @@ for stock in files_list:
                             call_sl_hit_dates.append(str(current_date))
                             #print("Call Stoploss Hit")                    
                             
-                    if (df.iloc[i]['close'] < support 
+                    if (df.iloc[i][put_close_or_low] < support 
                     and trade == 0 and buy != 1 and sell != 1
                     and df.iloc[i]["dt"].time() <= datetime.time(14,30,0) 
                     ):
-                        sell = 1
-                        trade = 1
-                        entry_price = df.iloc[i]['close']
-                        target_price = entry_price * ((100-target_percentage_of_profit_for_put)/100)
-                        stoploss = entry_price * ((100+target_percentage_of_sl_for_put)/100)
-                        trade_status = 11
-                        #print("Put - Buy")
+                        
+                        if put_close_or_low == 'low':
+                            sell = 1
+                            trade = 1
+                            entry_price = support
+                            target_price = entry_price * ((100-target_percentage_of_profit_for_put)/100)
+                            stoploss = entry_price * ((100+target_percentage_of_sl_for_put)/100)
+                            trade_status = 11
+                            #print("Put - Buy")
+                        
+                        if put_close_or_low == 'close':
+                            next_support = df.iloc[i]['close'] * put_confirmation
+                            put_close_or_low = 'low'
                     
                     if buy == 0 and sell == 1 and trade == 1:
                         # Put Status Check
@@ -175,6 +185,7 @@ for stock in files_list:
                             trade = 0
                             put_target_hit = put_target_hit + 1
                             trade_status = 12
+                            put_close_or_low = 'close'
                             put_target_hit_dates.append(str(current_date))
                             #print("Put Target Hit")
                         if (df.iloc[i]['high'] > stoploss):
@@ -182,6 +193,7 @@ for stock in files_list:
                             trade = 0
                             put_sl_hit = put_sl_hit + 1
                             trade_status = 13
+                            put_close_or_low = 'close'
                             put_sl_hit_dates.append(str(current_date))
                             #print("Put Stoploss Hit")
                         
@@ -202,6 +214,7 @@ for stock in files_list:
                         profit_percentage = (entry_price - df.iloc[i]['close'])/entry_price
                         intraday_put_close.append(profit_percentage)
                         trade_status = 14
+                        put_close_or_low = 'close'
                         put_closed_dates.append(str(current_date))
                         #print("IntraDay Timeout - Put Entry Closed")
                 
@@ -241,6 +254,7 @@ for stock in files_list:
                     sell = 0
                     trade_status = -1
                     call_close_or_high = 'close'
+                    put_close_or_low = 'close'
                     #print("Current Date :- ", current_date)
                     try:
                         current_date = df.iloc[i+1]["dt"].date()
@@ -383,5 +397,8 @@ with open('C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_Piv
     write.writerows(result[1:])
     write.writerows(result_summary)    
 '''
-print("\n*********************************************************************\n")
+print("\n*********************************************************************")
 print("Report Generated Successfully!!!")
+
+fin_time = datetime.datetime.now()
+print("Code Execution completed in ---->", (fin_time - init_time))
