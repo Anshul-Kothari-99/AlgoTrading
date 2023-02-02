@@ -11,7 +11,7 @@ import datetime
 from os import walk
 
 mypath = "D:\\NSE_Stocks_5m_hist_data\\"
-files_list = next(walk(mypath), (None, None, []))[2] # this would extract all the files(shares) names present in the folder in a list
+files_list = next(walk(mypath), (None, None, []))[2] # This would extract all the files(shares) names present in the folder
 
 result_summary_for_NSE_stocks = []
 failed_for =[]
