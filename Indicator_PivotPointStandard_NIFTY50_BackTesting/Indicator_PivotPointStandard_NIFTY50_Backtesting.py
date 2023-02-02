@@ -25,9 +25,11 @@ call_confirmation = 1.0002
 target_percentage_of_profit_for_put = 0.85   #0.85
 target_percentage_of_sl_for_put = 0.535  #0.535 #0.54
 
+timeframe = 5    # Enter Timeframe in minutes(5m/15m/30m only) - enter timeframe less than 30mins
+
 for stock in files_list[:1]:
     testcases_file_path = mypath + stock
-    testcases_file_path = "C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\NIFTY 50_5minute.csv"
+    testcases_file_path = "C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\NIFTY50_5min.csv"
     count+=1
     
     try:
@@ -43,7 +45,7 @@ for stock in files_list[:1]:
             df['low'] = df['low'].astype(float)
             df['close'] = df['close'].astype(float)
             df['open'] = df['open'].astype(float)    
-            df = df[-20000:]    # Uncomment for NSE Analysis
+            df = df[-2000:]
             #print(df)
         
         result = []
@@ -101,9 +103,12 @@ for stock in files_list[:1]:
                                  14:'IntraDay Timeout - Put Entry Closed'}
         
         result.append(['Trade Date', 'Closing Price', 'Resistance', 'Support', 'Entry Price', 'StopLoss', 'Target Price', 'Trade Status'])
+
+        print("Starting Date ----------> ", current_date)
         
         for i in range(len(df)):
-            if df.iloc[i]["dt"].date() == current_date:        
+            if df.iloc[i]["dt"].date() == current_date:     
+                debug_candle = str(df.iloc[i]["dt"].time())
                 if (resistance != -1):
                     # Check if resistance check is passed
                     resistance = next_resistance
@@ -111,10 +116,7 @@ for stock in files_list[:1]:
                     
                     if (df.iloc[i][call_close_or_high] > resistance 
                     and trade == 0 and buy != 1 and sell != 1
-                    and df.iloc[i]["dt"].time() != datetime.time(15,10,0) 
-                    and df.iloc[i]["dt"].time() != datetime.time(15,5,0) 
-                    and df.iloc[i]["dt"].time() != datetime.time(15,0,0)
-                    and df.iloc[i]["dt"].time() != datetime.time(14,55,0)
+                    and df.iloc[i]["dt"].time() <= datetime.time(14,30,0) 
                     ):
                         
                         if call_close_or_high == 'high':
@@ -151,10 +153,7 @@ for stock in files_list[:1]:
                             
                     if (df.iloc[i]['close'] < support 
                     and trade == 0 and buy != 1 and sell != 1
-                    and df.iloc[i]["dt"].time() != datetime.time(15,10,0) 
-                    and df.iloc[i]["dt"].time() != datetime.time(15,5,0) 
-                    and df.iloc[i]["dt"].time() != datetime.time(15,0,0)
-                    and df.iloc[i]["dt"].time() != datetime.time(14,55,0)
+                    and df.iloc[i]["dt"].time() <= datetime.time(14,30,0) 
                     ):
                         sell = 1
                         trade = 1
@@ -181,7 +180,7 @@ for stock in files_list[:1]:
                             put_sl_hit_dates.append(str(current_date))
                             #print("Put Stoploss Hit")
                         
-                    if buy == 1 and sell == 0 and trade == 1 and df.iloc[i]["dt"].time() == datetime.time(15,10,0):
+                    if buy == 1 and sell == 0 and trade == 1 and df.iloc[i]["dt"].time() >= datetime.time(15,10,0):
                         sell = 1
                         trade = 0
                         profit_percentage = (df.iloc[i]['close'] - entry_price)/entry_price
@@ -191,7 +190,7 @@ for stock in files_list[:1]:
                         #print("IntraDay Timeout - Call Entry Closed")
                         
                         
-                    if buy == 0 and sell == 1 and trade == 1 and df.iloc[i]["dt"].time() == datetime.time(15,10,0):
+                    if buy == 0 and sell == 1 and trade == 1 and df.iloc[i]["dt"].time() >= datetime.time(15,10,0):
                         buy = 1
                         trade = 0
                         profit_percentage = (entry_price - df.iloc[i]['close'])/entry_price
@@ -206,7 +205,7 @@ for stock in files_list[:1]:
                     low = df.iloc[i]["low"]            # Day low
                     #print('resistance_temp_low = ', low)
                 
-                if (df.iloc[i]["dt"].time() == datetime.time(15,25,0)):
+                if (df.iloc[i]["dt"].time() == datetime.time(15,(30-timeframe),0)):
                     close = df.iloc[i]["close"]
                     #print("Close Price recorded = ", close)
                     '''
