@@ -27,10 +27,10 @@ target_percentage_of_sl_for_put = 0.535  #0.535 #0.54
 
 timeframe = 5    # Enter Timeframe in minutes(5m/15m/30m only) - enter timeframe less than 30mins
 
-for stock in files_list[:1]:
+for stock in files_list:
     testcases_file_path = mypath + stock
-    testcases_file_path = "C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\NIFTY50_5min.csv"
-    count+=1
+    #testcases_file_path = "C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\NIFTY50_5min.csv"
+    count += 1
     
     try:
         with open(testcases_file_path, mode="r") as inputFile:
@@ -45,7 +45,7 @@ for stock in files_list[:1]:
             df['low'] = df['low'].astype(float)
             df['close'] = df['close'].astype(float)
             df['open'] = df['open'].astype(float)    
-            df = df[-2000:]
+            df = df  # To limit the data / Number of days - 1600 = Approx 31 days
             #print(df)
         
         result = []
@@ -79,11 +79,16 @@ for stock in files_list[:1]:
         count_no_trades = 0
         
         current_date = df.iloc[0]["dt"].date()
+        date_exception = []
+        start_date = current_date 
         call_target_hit_dates = []
         call_sl_hit_dates = []
+        call_closed_dates = []
         call_close_or_high = 'close'
         put_target_hit_dates = []
         put_sl_hit_dates = []
+        put_closed_dates = []
+        no_trades_dates = []
         
         high = 0
         low = 99999
@@ -104,7 +109,7 @@ for stock in files_list[:1]:
         
         result.append(['Trade Date', 'Closing Price', 'Resistance', 'Support', 'Entry Price', 'StopLoss', 'Target Price', 'Trade Status'])
 
-        print("Starting Date ----------> ", current_date)
+        #print("Starting Date ----------> ", start_date)
         
         for i in range(len(df)):
             if df.iloc[i]["dt"].date() == current_date:     
@@ -187,6 +192,7 @@ for stock in files_list[:1]:
                         intraday_call_close.append(profit_percentage)
                         trade_status = 4
                         call_close_or_high = 'close'
+                        call_closed_dates.append(str(current_date))
                         #print("IntraDay Timeout - Call Entry Closed")
                         
                         
@@ -196,6 +202,7 @@ for stock in files_list[:1]:
                         profit_percentage = (entry_price - df.iloc[i]['close'])/entry_price
                         intraday_put_close.append(profit_percentage)
                         trade_status = 14
+                        put_closed_dates.append(str(current_date))
                         #print("IntraDay Timeout - Put Entry Closed")
                 
                 if (df.iloc[i]["high"] > high):
@@ -221,6 +228,7 @@ for stock in files_list[:1]:
                     
                     if trade_status == -1:
                         count_no_trades += 1
+                        no_trades_dates.append(str(current_date))
                         #print(trade_status_encoding[trade_status])
         
                     p = (high + low + close)/3
@@ -237,6 +245,7 @@ for stock in files_list[:1]:
                     try:
                         current_date = df.iloc[i+1]["dt"].date()
                     except:
+                        date_exception.append(current_date)
                         pass
                     daysCount += 1
                     #print('Day\'s Count = ', daysCount)
@@ -246,6 +255,8 @@ for stock in files_list[:1]:
                         #print("One/Fisrt Time Assignment")
                         resistance = next_resistance
                         support = next_support
+        
+        resistance = -1
         
         print('*********', count, ' - ' + stock + ' *********')
         '''      
@@ -302,13 +313,18 @@ for stock in files_list[:1]:
         result_summary.append(["Net Results = ", net_call + net_put])
         '''
         
-        
+        '''
         print("\nDates on which Call Targets got Hit", call_target_hit_dates)
         print("\nDates on which Call SL got Hit", call_sl_hit_dates)
         print("\nDates on which Put Targets got Hit", put_target_hit_dates)
         print("\nDates on which Put SL got Hit", put_sl_hit_dates)
         
+        print("\nDates on which Call Timed out", call_closed_dates)
+        print("\nDates on which Put Timed out", put_closed_dates)
+        print("\nDates on which NO Trades were taken", no_trades_dates)
+        '''
         
+        delta_days = call_target_hit + len(intraday_call_close) + call_sl_hit + put_target_hit + len(intraday_put_close) + put_sl_hit + len(no_trades_dates) - daysCount
         result_summary_for_NSE_stocks.append([stock[:-7],
                                               call_target_hit, 
                                               len(intraday_call_close),
@@ -321,7 +337,12 @@ for stock in files_list[:1]:
                                               count_no_trades,
                                               net_call,
                                               net_put,
-                                              net_call + net_put])
+                                              net_call + net_put,
+                                              start_date,
+                                              current_date,
+                                              daysCount,
+                                              #delta_days
+                                              ])
     
     except:
         failed_for.append(stock[:-7])
@@ -342,7 +363,13 @@ result_summary_for_NSE_stocks.columns = ["Stock Symbol",
                                          "No Trades Taken Count", 
                                          "Net Call Returns", 
                                          "Net Put Returns",
-                                         "Net Returns"]
+                                         "Net Returns",
+                                         "Starting Date",
+                                         "Last Date",
+                                         "Number of days run",
+                                         #"Delta Days"
+                                         ]
+
 print(result_summary_for_NSE_stocks)
 result_summary_for_NSE_stocks.to_csv('C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\Stategy_Evaluation_on_Stocks.csv', index=False)
 
