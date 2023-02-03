@@ -11,7 +11,7 @@ init_time = datetime.datetime.now()
 import pandas as pd
 from os import walk
 
-mypath = "D:\\NSE_Stocks_5m_hist_data\\"
+mypath = "D:\\NSE_Stocks_5m_hist_data\\pre processed data files\\"
 files_list = next(walk(mypath), (None, None, []))[2] # This would extract all the files(shares) names present in the folder
 
 result_summary_for_NSE_stocks = []
@@ -31,15 +31,12 @@ timeframe = 5    # Enter Timeframe in minutes(5m/15m/30m only) - enter timeframe
 
 for stock in files_list:
     #stock = 'NIFTY50_5min.csv'
-    testcases_file_path = mypath + stock    
+    testcases_file_path = mypath + stock
     count += 1
     
     try:
         df = pd.read_csv(testcases_file_path)
-        df['dt'] = df['Date'] + ' ' + df ['Time']
-        df.rename(columns = {"Open":"open", "High":"high", "Low":"low", "Close":"close"},inplace=True)
         df.dt = pd.to_datetime(df.dt)
-        df.drop(['Date', 'Time', 'Volume'], axis=1, inplace=True)
         df['high'] = df['high'].astype(float)
         df['low'] = df['low'].astype(float)
         df['close'] = df['close'].astype(float)
@@ -50,13 +47,7 @@ for stock in files_list:
         result = []
         result_summary = []
         daysCount = 0
-        x = 0
-        
-        while df.iloc[x]['dt'].time() != datetime.time(9,15,0):
-            x += 1
-        df = df[x:]
-        #print(df.shape)
-        
+
         # print(datetime.date(2015,2,16).weekday(), datetime.date(2015,2,16))
         # saturday - 5
         # sunday - 6
@@ -402,8 +393,7 @@ result_summary_for_NSE_stocks.columns = ["Stock Symbol",
 print(result_summary_for_NSE_stocks)
 result_summary_for_NSE_stocks.to_csv('C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_Harami_BackTesting\\Stategy_Evaluation_on_Stocks.csv', index=False)
 
-print('\nFailed for -------------> ', failed_for)
-print('\nFailed for -------------> ', len(failed_for))
+print('\nFailed for -------------> ', len(failed_for), failed_for)
 
 '''
 with open('C:\\Users\\kotha\\OneDrive\\Desktop\\Algo Trading Repo\\Indicator_PivotPointStandard_NIFTY50_BackTesting\\Results.csv', 'w') as OutputFile:
