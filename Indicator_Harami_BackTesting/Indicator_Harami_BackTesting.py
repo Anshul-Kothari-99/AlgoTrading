@@ -19,9 +19,12 @@ failed_for =[]
 count = 0
 
 # HyperParameters - to be tunned
-target_percentage_of_profit_for_call = 1  #0.92 with 1.0002 confirmation factor #0.94   1.115
-target_percentage_of_sl_for_call = 0.2  #0.495      0.38
-call_confirmation = 1.001
+target_percentage_of_profit_for_call = 1.845  #2.4, 4.2, 6.7
+target_percentage_of_sl_for_call = 0.2  
+call_confirmation = 1.003
+red_candle_length_check = 1.5
+green_candle_length_check = 0.77       # 1
+third_candle_length_check = 1.2
 
 target_percentage_of_profit_for_put = 0.89   #0.83 with 0.9998 confirmation factor #0.89
 target_percentage_of_sl_for_put = 0.495  #0.535 #0.54      #495
@@ -29,7 +32,7 @@ put_confirmation = 0.9998      # 0.9998
 
 timeframe = 5    # Enter Timeframe in minutes(5m/15m/30m only) - enter timeframe less than 30mins
 
-for stock in files_list:
+for stock in files_list[788:]:
     #stock = 'NIFTY50_5min.csv'
     testcases_file_path = mypath + stock
     count += 1
@@ -119,8 +122,12 @@ for stock in files_list:
                 and df.iloc[i]['close'] < df.iloc[i+1]['low']):
                     bull_harami_count += 1
                     bull_harami_instance.append(df.iloc[i]['dt'])                
-                
+                                    
                     if (bull_harami == -1 and df.iloc[i]['high'] < df.iloc[i+2]['close'] 
+                    and ((df.iloc[i]['open'] - df.iloc[i]['close']) / df.iloc[i]['close'] * 100) >= red_candle_length_check   # check 1st/Red candle length 
+                    and df.iloc[i+2]['open'] < df.iloc[i+2]['close']    # check - 3rd candle is green 
+                    and ((df.iloc[i+2]['close'] - df.iloc[i+2]['open']) / df.iloc[i+2]['open'] * 100) >= third_candle_length_check    # check 3rd/green candle length 
+                    and ((df.iloc[i+1]['close'] - df.iloc[i+1]['open']) / df.iloc[i+1]['open'] * 100) >= green_candle_length_check    # check 2nd/green candle length 
                     and df.iloc[i+2]["dt"].time() < datetime.time(14,20,0) 
                     and trade == 0 and buy != 1 and sell != 1
                     ):                        
@@ -152,7 +159,7 @@ for stock in files_list:
                         call_target_hit = call_target_hit + 1
                         trade_status = 2
                         bull_harami = -1
-                        call_target_hit_dates.append(str(current_date))
+                        call_target_hit_dates.append(str(df.iloc[i]["dt"]))
                         #print("Call Target Hit")
                     if (df.iloc[i]['low'] < stoploss and i > bull_harami_candle_number + 3):
                         sell = 1
@@ -160,7 +167,7 @@ for stock in files_list:
                         call_sl_hit = call_sl_hit + 1
                         trade_status = 3
                         bull_harami = -1
-                        call_sl_hit_dates.append(str(current_date))
+                        call_sl_hit_dates.append(str(df.iloc[i]["dt"]))
                         #print("Call Stoploss Hit")                                                        
                 '''        
                 if (df.iloc[i][put_close_or_low] < support 
@@ -209,7 +216,7 @@ for stock in files_list:
                     trade_status = 4
                     bull_harami = -1
                     resistance = 999999                    
-                    call_closed_dates.append(str(current_date))
+                    call_closed_dates.append(str(df.iloc[i]["dt"]))
                     #print("IntraDay Timeout - Call Entry Closed")
     
                 '''    
@@ -357,8 +364,10 @@ for stock in files_list:
                                               daysCount,
                                               #delta_days
                                               ])
-        
-        print(count, '\t', stock[:-7], '\t\t', bull_harami_count, '\t\t', (call_target_hit,call_sl_hit))
+        if (call_target_hit > 0) or (call_sl_hit > 0):
+            print(count, '\t', stock[:-7], '\t\t', bull_harami_count, '\t\t', (call_target_hit,call_sl_hit))
+        else:
+            print(count)
         bull_harami_count = 0
         
     except:
