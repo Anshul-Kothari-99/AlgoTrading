@@ -8,7 +8,6 @@ Created on Fri Feb  3 00:28:22 2023
 import datetime
 init_time = datetime.datetime.now()
 
-import csv
 import pandas as pd
 from os import walk
 
@@ -36,20 +35,17 @@ for stock in files_list:
     count += 1
     
     try:
-        with open(testcases_file_path, mode="r") as inputFile:
-            inputReader = csv.DictReader(inputFile)
-            
-            df = pd.DataFrame(inputReader)    
-            df['dt'] = df['Date'] + ' ' + df ['Time']
-            df.rename(columns = {"Open":"open", "High":"high", "Low":"low", "Close":"close"},inplace=True)
-            df.dt = pd.to_datetime(df.dt)
-            df.drop(['Date', 'Time', 'Volume'], axis=1, inplace=True)
-            df['high'] = df['high'].astype(float)
-            df['low'] = df['low'].astype(float)
-            df['close'] = df['close'].astype(float)
-            df['open'] = df['open'].astype(float)    
-            #df = df[-20000:]  # To limit the data / Number of days - 1600 = Approx 31 days
-            #print(df)
+        df = pd.read_csv(testcases_file_path)
+        df['dt'] = df['Date'] + ' ' + df ['Time']
+        df.rename(columns = {"Open":"open", "High":"high", "Low":"low", "Close":"close"},inplace=True)
+        df.dt = pd.to_datetime(df.dt)
+        df.drop(['Date', 'Time', 'Volume'], axis=1, inplace=True)
+        df['high'] = df['high'].astype(float)
+        df['low'] = df['low'].astype(float)
+        df['close'] = df['close'].astype(float)
+        df['open'] = df['open'].astype(float)    
+        #df = df[2800:]  # To limit the data / Number of days - 1600 = Approx 31 days
+        #print(df.shape)
         
         result = []
         result_summary = []
@@ -59,6 +55,7 @@ for stock in files_list:
         while df.iloc[x]['dt'].time() != datetime.time(9,15,0):
             x += 1
         df = df[x:]
+        #print(df.shape)
         
         # print(datetime.date(2015,2,16).weekday(), datetime.date(2015,2,16))
         # saturday - 5
@@ -85,7 +82,7 @@ for stock in files_list:
         call_target_hit_dates = []
         call_sl_hit_dates = []
         call_closed_dates = []
-
+    
         put_target_hit_dates = []
         put_sl_hit_dates = []
         put_closed_dates = []
@@ -114,21 +111,22 @@ for stock in files_list:
                                  14:'IntraDay Timeout - Put Entry Closed'}
         
         result.append(['Trade Date', 'Closing Price', 'Resistance', 'Support', 'Entry Price', 'StopLoss', 'Target Price', 'Trade Status'])
-
+    
         #print("Starting Date ----------> ", start_date)
         
         for i in range(len(df)):
+            
             if df.iloc[i]["dt"].date() == current_date:     
                 
                 debug_candle = str(df.iloc[i]["dt"].time())
                 
                 # Bull Harami Formation (Big red followed by small Green)
-                if (df.iloc[i]['open'] > df.iloc[i+1]['high']
+                if ( (i+3)<len(df) and df.iloc[i]['open'] > df.iloc[i+1]['high']
                 and df.iloc[i]['close'] < df.iloc[i+1]['low']):
                     bull_harami_count += 1
                     bull_harami_instance.append(df.iloc[i]['dt'])                
                 
-                if (df.iloc[i]['open'] > df.iloc[i+1]['high']
+                if ((i+3)<len(df) and df.iloc[i]['open'] > df.iloc[i+1]['high']
                 and df.iloc[i]['close'] < df.iloc[i+1]['low']
                 and df.iloc[i]['high'] < df.iloc[i+2]['close'] 
                 and df.iloc[i+2]["dt"].time() < datetime.time(14,30,0) 
@@ -164,7 +162,7 @@ for stock in files_list:
                         bull_harami = -1
                         call_target_hit_dates.append(str(current_date))
                         #print("Call Target Hit")
-                    if (df.iloc[i]['low'] < stoploss and i > bull_harami_candle_number + 2):
+                    if (df.iloc[i]['low'] < stoploss and i > bull_harami_candle_number + 3):
                         sell = 1
                         trade = 0
                         call_sl_hit = call_sl_hit + 1
@@ -221,7 +219,7 @@ for stock in files_list:
                     resistance = 999999                    
                     call_closed_dates.append(str(current_date))
                     #print("IntraDay Timeout - Call Entry Closed")
-
+    
                 '''    
                 if buy == 0 and sell == 1 and trade == 1 and df.iloc[i]["dt"].time() >= datetime.time(15,10,0):
                     buy = 1
@@ -232,7 +230,6 @@ for stock in files_list:
                     put_close_or_low = 'close'
                     put_closed_dates.append(str(current_date))
                     #print("IntraDay Timeout - Put Entry Closed")
-                '''
                 
                 # Recording Day High and Low
                 if (df.iloc[i]["high"] > high):
@@ -241,7 +238,7 @@ for stock in files_list:
                 if (df.iloc[i]["low"] < low):
                     low = df.iloc[i]["low"]            # Day low
                     #print('resistance_temp_low = ', low)
-                
+                '''
                 if (df.iloc[i]["dt"].time() == datetime.time(15,(30-timeframe),0)):
                     close = df.iloc[i]["close"]
                     #print("Close Price recorded = ", close)
@@ -276,7 +273,7 @@ for stock in files_list:
                     #print('Day\'s Count = ', daysCount)
                     #print("\n")
         
-        print('*********', count, ' - ' + stock + ' *********')
+        #print('*********', count, ' - ' + stock + ' *********')
         '''      
         print("Count of Call Target Hits = ", call_target_hit)
         result_summary.append(["Count of Call Target Hits = ", call_target_hit])
@@ -296,7 +293,7 @@ for stock in files_list:
         '''
         try:
             avg_put = sum(intraday_put_close)/len(intraday_put_close)*100 
-        except: 
+        except:
             avg_put = 0   #Failed
             pass
         '''
@@ -339,7 +336,7 @@ for stock in files_list:
         print("\nDates on which Put Targets got Hit", put_target_hit_dates)
         print("\nDates on which Put SL got Hit", put_sl_hit_dates)
         print("\nDates on which Put Timed out", put_closed_dates)
-
+    
         print("\nDates on which NO Trades were taken", no_trades_dates)
         '''
         
@@ -367,12 +364,15 @@ for stock in files_list:
                                               daysCount,
                                               #delta_days
                                               ])
-    
+        
+        print(count, '\t', stock[:-7], '\t\t\t\t\t', bull_harami_count)
+        bull_harami_count = 0
+        
     except:
+        #print(e)   Exception as e
         failed_for.append(stock[:-7])
-        print('Analysis Failed for -------------> ', stock[:-7])
+        print('Analysis Failed for -------------> ', stock[:-7], i)
         pass
-
 
 result_summary_for_NSE_stocks = pd.DataFrame(result_summary_for_NSE_stocks)
 result_summary_for_NSE_stocks.columns = ["Stock Symbol",
