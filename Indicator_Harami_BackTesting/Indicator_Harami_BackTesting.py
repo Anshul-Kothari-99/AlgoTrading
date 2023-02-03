@@ -19,9 +19,9 @@ failed_for =[]
 count = 0
 
 # HyperParameters - to be tunned
-target_percentage_of_profit_for_call = 1.115  #0.92 with 1.0002 confirmation factor #0.94   1.115
-target_percentage_of_sl_for_call = 0.38  #0.495      0.38
-call_confirmation = 1.0002
+target_percentage_of_profit_for_call = 1  #0.92 with 1.0002 confirmation factor #0.94   1.115
+target_percentage_of_sl_for_call = 0.2  #0.495      0.38
+call_confirmation = 1.001
 
 target_percentage_of_profit_for_put = 0.89   #0.83 with 0.9998 confirmation factor #0.89
 target_percentage_of_sl_for_put = 0.495  #0.535 #0.54      #495
@@ -109,28 +109,29 @@ for stock in files_list:
             
             if df.iloc[i]["dt"].date() == current_date:     
                 
-                debug_candle = str(df.iloc[i]["dt"].time())
+                debug_candle = str(df.iloc[i]["dt"])
                 
                 # Bull Harami Formation (Big red followed by small Green)
-                if ( (i+3)<len(df) and df.iloc[i]['open'] > df.iloc[i+1]['high']
+                if ( (i+3)<len(df) 
+                and df.iloc[i]['open'] > df.iloc[i]['close']     # check for red candle
+                and df.iloc[i+1]['open'] < df.iloc[i+1]['close']     # check for green candle
+                and df.iloc[i]['open'] > df.iloc[i+1]['high']
                 and df.iloc[i]['close'] < df.iloc[i+1]['low']):
                     bull_harami_count += 1
                     bull_harami_instance.append(df.iloc[i]['dt'])                
                 
-                if ((i+3)<len(df) and df.iloc[i]['open'] > df.iloc[i+1]['high']
-                and df.iloc[i]['close'] < df.iloc[i+1]['low']
-                and df.iloc[i]['high'] < df.iloc[i+2]['close'] 
-                and df.iloc[i+2]["dt"].time() < datetime.time(14,30,0) 
-                and bull_harami == -1 
-                and trade == 0 and buy != 1 and sell != 1
-                ):                        
-                    # Write Confirmation Logic here
-                    resistance = df.iloc[i+2]['close'] * call_confirmation
-                    bull_harami_candle_number = i
-                    bull_harami = 1
-                    
+                    if (bull_harami == -1 and df.iloc[i]['high'] < df.iloc[i+2]['close'] 
+                    and df.iloc[i+2]["dt"].time() < datetime.time(14,20,0) 
+                    and trade == 0 and buy != 1 and sell != 1
+                    ):                        
+                        # Write Confirmation Logic here
+                        resistance = df.iloc[i+2]['close'] * call_confirmation
+                        bull_harami_candle_number = i
+                        bull_harami = 1
+                        
                 if (bull_harami == 1 
                     and i > bull_harami_candle_number + 2
+                    and df.iloc[i]["dt"].time() < datetime.time(14,35,0)
                     and df.iloc[i]['high'] > resistance
                     ):
                     trade = 1
@@ -230,6 +231,7 @@ for stock in files_list:
                     low = df.iloc[i]["low"]            # Day low
                     #print('resistance_temp_low = ', low)
                 '''
+                
                 if (df.iloc[i]["dt"].time() == datetime.time(15,(30-timeframe),0)):
                     close = df.iloc[i]["close"]
                     #print("Close Price recorded = ", close)
@@ -356,7 +358,7 @@ for stock in files_list:
                                               #delta_days
                                               ])
         
-        print(count, '\t', stock[:-7], '\t\t\t\t\t', bull_harami_count)
+        print(count, '\t', stock[:-7], '\t\t', bull_harami_count, '\t\t', (call_target_hit,call_sl_hit))
         bull_harami_count = 0
         
     except:
