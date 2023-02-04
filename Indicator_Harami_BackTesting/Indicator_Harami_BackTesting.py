@@ -9,8 +9,8 @@ from os import walk
 import datetime
 init_time = datetime.datetime.now()
 
-mypath = "D:\\NSE_Stocks_5m_hist_data\\pre processed data files\\"
-# "D:\\Python Scripts\\shares Analysis\\preprocessed_5_min_equity_data\\"
+mypath = "D:\\Python Scripts\\shares Analysis\\preprocessed_5_min_equity_data\\"
+# "D:\\NSE_Stocks_5m_hist_data\\pre processed data files\\"
 files_list = next(walk(mypath), (None, None, []))[2]  # This would extract all the files(shares) names present in the folder
 
 result_summary_for_NSE_stocks = []
@@ -18,16 +18,19 @@ failed_for = []
 count = 0
 
 # HyperParameters - to be tunned
-target_percentage_of_profit_for_call = 1.8    # 1.845, 2.4, 4.2, 6.7
+target_percentage_of_profit_for_call = 1    # 1.8, 1.845, 2.4, 4.2, 6.7
 target_percentage_of_sl_for_call = 0.31     # try keeping stoploss below the confirmation factor
 call_confirmation = 1.003
-red_candle_length_check = 1.5
-# green_candle_length_check = 0.77       # 1
-third_candle_length_check = 1.2
+call_red_candle_length_check = 1.5
+# call_green_candle_length_check = 0.77       # 1
+call_third_candle_length_check = 1.2
 
-target_percentage_of_profit_for_put = 0.89   # 0.83 with 0.9998 confirmation factor #0.89
-target_percentage_of_sl_for_put = 0.495  # 0.535, 0.54, 495
-put_confirmation = 0.9998      # 0.9998
+target_percentage_of_profit_for_put = 1   # 0.83 with 0.9998 confirmation factor #0.89
+target_percentage_of_sl_for_put = 0.31  # 0.535, 0.54, 495
+put_confirmation = 0.997      # 0.9998
+put_green_candle_length_check = 1.5
+# put_red_candle_length_check = 0.77       # 1
+put_third_candle_length_check = 1.2
 
 timeframe = 5    # Enter Timeframe in minutes(5m/15m/30m only) - enter timeframe less than 30mins
 
@@ -46,39 +49,19 @@ for stock in files_list:
         # df = df[4028:4105]  # To limit the data / Number of days - 1600 = Approx 31 days
         # print(df)
 
-        result = []
         result_summary = []
         daysCount = 0
 
-        # print(datetime.date(2015,2,16).weekday(), datetime.date(2015,2,16))
-        # saturday - 5
-        # sunday - 6
-        # condition: df.iloc[i]["dt"].date().weekday() != 6 and df.iloc[i]["dt"].date().weekday() != 5
-
         resistance = 999999
-        intraday_call_close = []
-        intraday_put_close = []
-        call_target_hit = 0
-        call_sl_hit = 0
-        put_target_hit = 0
-        put_sl_hit = 0
         support = 0
         entry_price = 0
         target_price = 0
         stoploss = 0
 
         count_no_trades = 0
-
         current_date = df.iloc[0]["dt"].date()
         date_exception = []
         start_date = current_date
-        call_target_hit_dates = []
-        call_sl_hit_dates = []
-        call_closed_dates = []
-
-        put_target_hit_dates = []
-        put_sl_hit_dates = []
-        put_closed_dates = []
         no_trades_dates = []
 
         high = 0
@@ -88,10 +71,28 @@ for stock in files_list:
         trade = 0
         trade_status = -1
 
+        intraday_call_close = []
+        intraday_put_close = []
+        call_target_hit = 0
+        call_sl_hit = 0
+        put_target_hit = 0
+        put_sl_hit = 0
+
+        call_target_hit_dates = []
+        call_sl_hit_dates = []
+        call_closed_dates = []
+        put_target_hit_dates = []
+        put_sl_hit_dates = []
+        put_closed_dates = []
+
         bull_harami_candle_number = -1
         bull_harami = -1
         bull_harami_count = 0
         bull_harami_instance = []
+        bear_harami_candle_number = -1
+        bear_harami = -1
+        bear_harami_count = 0
+        bear_harami_instance = []
 
         trade_status_encoding = {-1: 'No Trade Taken',
                                  1: 'Call - Buy',
@@ -103,15 +104,6 @@ for stock in files_list:
                                  13: 'Put StopLoss Hit',
                                  14: 'IntraDay Timeout - Put Entry Closed'}
 
-        result.append(['Trade Date',
-                       'Closing Price',
-                       'Resistance',
-                       'Support',
-                       'Entry Price',
-                       'StopLoss',
-                       'Target Price',
-                       'Trade Status'])
-
         # print("Starting Date ----------> ", start_date)
 
         for i in range(len(df)):
@@ -120,22 +112,22 @@ for stock in files_list:
 
                 debug_candle = str(df.iloc[i]["dt"])
 
-                # Bull Harami Formation (Big red followed by small Green)
+                # Bull Harami Formation (Big Red followed by inside Green)
                 if ((i+3) < len(df)
-                    and df.iloc[i]['open'] > df.iloc[i]['close']     # check for red candle
-                    and df.iloc[i+1]['open'] < df.iloc[i+1]['close']     # check for green candle
+                    and df.iloc[i]['open'] > df.iloc[i]['close']     # check for 1st red candle
+                    and df.iloc[i+1]['open'] < df.iloc[i+1]['close']     # check 2nd for green candle
                     and df.iloc[i]['open'] > df.iloc[i+1]['high']
                     and df.iloc[i]['close'] < df.iloc[i+1]['low']):
                     bull_harami_count += 1
                     bull_harami_instance.append(str(df.iloc[i]['dt']))
 
-                    red_candle_length = (df.iloc[i]['open'] - df.iloc[i]['close']) / df.iloc[i]['close'] * 100
+                    call_red_candle_length = (df.iloc[i]['open'] - df.iloc[i]['close']) / df.iloc[i]['close'] * 100
                     if (bull_harami == -1 
-                        and df.iloc[i]['high'] < df.iloc[i+2]['close']
-                        and red_candle_length >= red_candle_length_check   # check 1st/Red candle length
+                        and df.iloc[i]['high'] < df.iloc[i+2]['close']  # check 3rd candle closes above 1st candle high
+                        and call_red_candle_length >= call_red_candle_length_check   # check 1st/Red candle length
                         and df.iloc[i+2]['open'] < df.iloc[i+2]['close']   # check - 3rd candle is green
-                        and ((df.iloc[i+2]['close'] - df.iloc[i+2]['open']) / df.iloc[i+2]['open'] * 100) >= third_candle_length_check    # check 3rd/green candle length 
-                        and ((df.iloc[i+1]['close'] - df.iloc[i+1]['open']) / df.iloc[i+1]['open'] * 100) >= (red_candle_length/2)    # check 2nd/green candle length 
+                        and ((df.iloc[i+2]['close'] - df.iloc[i+2]['open']) / df.iloc[i+2]['open'] * 100) >= call_third_candle_length_check    # check 3rd/green candle length 
+                        and ((df.iloc[i+1]['close'] - df.iloc[i+1]['open']) / df.iloc[i+1]['open'] * 100) >= (call_red_candle_length/2)    # check 2nd/green candle length 
                         and df.iloc[i+2]["dt"].time() < datetime.time(14, 20, 0)
                         and trade == 0 and buy != 1 and sell != 1):
                         # Write Confirmation Logic here
@@ -150,11 +142,47 @@ for stock in files_list:
                     trade = 1
                     buy = 1
                     entry_price = resistance
-                    target_price = entry_price * ((100+target_percentage_of_profit_for_call)/100)
-                    stoploss = entry_price * ((100-target_percentage_of_sl_for_call)/100)
+                    target_price = entry_price * ((100 + target_percentage_of_profit_for_call)/100)
+                    stoploss = entry_price * ((100 - target_percentage_of_sl_for_call)/100)
                     trade_status = 1
                     resistance = 999999
                     # print("Call - Buy")
+
+                # Bear Harami Formation (Big Green followed by inside Red)
+                if ((i+3) < len(df)
+                    and df.iloc[i]['open'] < df.iloc[i]['close']     # check for 1st green candle
+                    and df.iloc[i+1]['open'] > df.iloc[i+1]['close']     # check for 2nd red candle
+                    and df.iloc[i]['open'] < df.iloc[i+1]['low']
+                    and df.iloc[i]['close'] > df.iloc[i+1]['high']):
+                    bear_harami_count += 1
+                    bear_harami_instance.append(str(df.iloc[i]['dt']))
+
+                    put_green_candle_length = (df.iloc[i]['close'] - df.iloc[i]['open']) / df.iloc[i]['open'] * 100
+                    if (bear_harami == -1
+                        and df.iloc[i]['low'] > df.iloc[i+2]['close']  # check 3rd candle closes below 1st candle low
+                        and put_green_candle_length >= put_green_candle_length_check   # check 1st/green candle length
+                        and df.iloc[i+2]['open'] > df.iloc[i+2]['close']   # check - 3rd candle is red
+                        and ((df.iloc[i+2]['open'] - df.iloc[i+2]['close']) / df.iloc[i+2]['close'] * 100) >= put_third_candle_length_check    # check 3rd/red candle length 
+                        and ((df.iloc[i+1]['open'] - df.iloc[i+1]['close']) / df.iloc[i+1]['close'] * 100) >= (put_green_candle_length/2)    # check 2nd/red candle length 
+                        and df.iloc[i+2]["dt"].time() < datetime.time(14, 20, 0)
+                        and trade == 0 and buy != 1 and sell != 1):
+                        # Write Confirmation Logic here
+                        support = df.iloc[i+2]['close'] * put_confirmation
+                        bear_harami_candle_number = i
+                        bear_harami = 1
+
+                if (bear_harami == 1
+                    and i > bear_harami_candle_number + 2
+                    and df.iloc[i]["dt"].time() < datetime.time(14, 35, 0)
+                    and df.iloc[i]['low'] < support):
+                    trade = 1
+                    sell = 1
+                    entry_price = support
+                    target_price = entry_price * ((100 - target_percentage_of_profit_for_put)/100)
+                    stoploss = entry_price * ((100 + target_percentage_of_sl_for_put)/100)
+                    trade_status = 11
+                    support = 0
+                    #print("Put - Buy")
 
                 if (buy == 1 and sell == 0 and trade == 1 and bull_harami == 1
                     and i > bull_harami_candle_number + 2):
@@ -168,7 +196,8 @@ for stock in files_list:
                         call_target_hit_dates.append(str(df.iloc[i]["dt"]))
                         # print("Call Target Hit")
                     if (df.iloc[i]['low'] < stoploss
-                        and i > bull_harami_candle_number + 3):
+                        # and i > bull_harami_candle_number + 3                    ############## changing from initial condition, uncomment to bring back it to normal both in call and put
+                        ):
                         sell = 1
                         trade = 0
                         call_sl_hit = call_sl_hit + 1
@@ -176,46 +205,31 @@ for stock in files_list:
                         bull_harami = -1
                         call_sl_hit_dates.append(str(df.iloc[i]["dt"]))
                         # print("Call Stoploss Hit")
-                '''
-                if (df.iloc[i][put_close_or_low] < support
-                and trade == 0 and buy != 1 and sell != 1
-                and df.iloc[i]["dt"].time() <= datetime.time(14,30,0)
-                ):
 
-                    if put_close_or_low == 'low':
-                        sell = 1
-                        trade = 1
-                        entry_price = support
-                        target_price = entry_price * ((100-target_percentage_of_profit_for_put)/100)
-                        stoploss = entry_price * ((100+target_percentage_of_sl_for_put)/100)
-                        trade_status = 11
-                        #print("Put - Buy")
-
-                    if put_close_or_low == 'close':
-                        next_support = df.iloc[i]['close'] * put_confirmation
-                        put_close_or_low = 'low'
-
-                if buy == 0 and sell == 1 and trade == 1:
+                if (buy == 0 and sell == 1 and trade == 1 and bear_harami == 1
+                    and i > bear_harami_candle_number + 2):
                     # Put Status Check
                     if (df.iloc[i]['low'] < target_price):
                         buy = 1
                         trade = 0
                         put_target_hit = put_target_hit + 1
                         trade_status = 12
-                        put_close_or_low = 'close'
+                        bear_harami = -1
                         put_target_hit_dates.append(str(current_date))
                         #print("Put Target Hit")
-                    if (df.iloc[i]['high'] > stoploss):
+                    if (df.iloc[i]['high'] > stoploss
+                        #and i > bear_harami_candle_number + 3
+                        ):
                         buy = 1
                         trade = 0
                         put_sl_hit = put_sl_hit + 1
                         trade_status = 13
-                        put_close_or_low = 'close'
+                        bear_harami = -1
                         put_sl_hit_dates.append(str(current_date))
                         #print("Put Stoploss Hit")
-                '''
+                
                 if (buy == 1 and sell == 0 and trade == 1 and bull_harami == 1
-                    and df.iloc[i]["dt"].time() >= datetime.time(15,10,0)):
+                    and df.iloc[i]["dt"].time() >= datetime.time(15, 10, 0)):
                     sell = 1
                     trade = 0
                     profit_percentage = (df.iloc[i]['close'] - entry_price)/entry_price
@@ -226,17 +240,19 @@ for stock in files_list:
                     call_closed_dates.append(str(df.iloc[i]["dt"]))
                     # print("IntraDay Timeout - Call Entry Closed")
 
-                '''
-                if buy == 0 and sell == 1 and trade == 1 and df.iloc[i]["dt"].time() >= datetime.time(15,10,0):
+                if (buy == 0 and sell == 1 and trade == 1 and bear_harami == 1
+                    and df.iloc[i]["dt"].time() >= datetime.time(15, 10, 0)):
                     buy = 1
                     trade = 0
                     profit_percentage = (entry_price - df.iloc[i]['close'])/entry_price
                     intraday_put_close.append(profit_percentage)
                     trade_status = 14
-                    put_close_or_low = 'close'
+                    bear_harami = -1
+                    support = 0
                     put_closed_dates.append(str(current_date))
                     #print("IntraDay Timeout - Put Entry Closed")
 
+                '''
                 # Recording Day High and Low
                 if (df.iloc[i]["high"] > high):
                     high = df.iloc[i]["high"]          # Day high
@@ -260,6 +276,7 @@ for stock in files_list:
                     sell = 0
                     trade_status = -1
                     bull_harami = -1
+                    bear_harami = -1
                     # print("Current Date :- ", current_date)
                     try:
                         current_date = df.iloc[i+1]["dt"].date()
@@ -351,6 +368,8 @@ for stock in files_list:
         result_summary_for_NSE_stocks.append([stock[:-4],
                                               bull_harami_count,
                                               bull_harami_instance,
+                                              bear_harami_count,
+                                              bear_harami_instance,
                                               call_target_hit,
                                               len(intraday_call_close),
                                               avg_call,
@@ -358,24 +377,30 @@ for stock in files_list:
                                               call_target_hit_dates,
                                               call_sl_hit_dates,
                                               call_closed_dates,
-                                              # put_target_hit,
-                                              # len(intraday_put_close),
-                                              # avg_put,
-                                              # put_sl_hit,
+                                              put_target_hit,
+                                              len(intraday_put_close),
+                                              avg_put,
+                                              put_sl_hit,
+                                              put_target_hit_dates,
+                                              put_sl_hit_dates,
+                                              put_closed_dates,                                              
                                               count_no_trades,
                                               net_call,
-                                              # net_put,
-                                              # net_call + net_put,
+                                              net_put,
+                                              net_call + net_put,
                                               start_date,
                                               current_date,
                                               daysCount,
                                               # delta_days
                                               ])
         if (call_target_hit > 0) or (call_sl_hit > 0):
-            print(count, '\t', stock[:-4], '\t\t', bull_harami_count, '\t\t', (call_target_hit,call_sl_hit))
+            print(count, '\t', stock[:-4], '\t\t', bull_harami_count, '\t\t', (call_target_hit, call_sl_hit))
+        elif (put_target_hit > 0) or (put_sl_hit > 0):
+            print(count, '\t', stock[:-4], '\t\t', bear_harami_count, '\t\t', (put_target_hit, put_sl_hit))
         else:
             print(count)
         bull_harami_count = 0
+        bear_harami_count = 0
 
     except:
         # print(e)   Exception as e
@@ -387,6 +412,8 @@ result_summary_for_NSE_stocks = pd.DataFrame(result_summary_for_NSE_stocks)
 result_summary_for_NSE_stocks.columns = ["Stock Symbol",
                                          "Bull Harami Count",
                                          "Bull Harami Dates",
+                                         "Bear Harami Count",
+                                         "Bear Harami Dates",
                                          "Call Target Hits Count",
                                          "Call closed for Intraday Count",
                                          "Call Avg %",
@@ -394,14 +421,17 @@ result_summary_for_NSE_stocks.columns = ["Stock Symbol",
                                          "Call Targets Hit Dates",
                                          "Call SL Hit Dates",
                                          "Call Closed Dates",
-                                         # "Put Target Hits Count",
-                                         # "Put closed for Intraday Count",
-                                         # "Put Avg %",
-                                         # "Put StopLoss Hits Count",
+                                         "Put Target Hits Count",
+                                         "Put closed for Intraday Count",
+                                         "Put Avg %",
+                                         "Put StopLoss Hits Count",
+                                         "Put Targets Hit Dates",
+                                         "Put SL Hit Dates",
+                                         "Put Closed Dates",
                                          "No Trades Taken Count",
                                          "Net Call Returns",
-                                         # "Net Put Returns",
-                                         # "Net Returns",
+                                         "Net Put Returns",
+                                         "Net Returns",
                                          "Starting Date",
                                          "Last Date",
                                          "Number of days run",
