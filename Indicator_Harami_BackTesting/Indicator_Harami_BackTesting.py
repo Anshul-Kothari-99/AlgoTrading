@@ -2,15 +2,16 @@
 """
 Created on Fri Feb  3 00:28:22 2023
 
-@author: kotha
+@author: Anshul Kothari
+kotharianshul.1998@gmail.com
 """
 import pandas as pd
 from os import walk
 import datetime
 init_time = datetime.datetime.now()
 
-mypath = "D:\\Python Scripts\\shares Analysis\\preprocessed_5_min_equity_data\\"
-# "D:\\NSE_Stocks_5m_hist_data\\pre processed data files\\"
+mypath = "D:\\NSE_Stocks_5m_hist_data\\pre processed data files\\"
+# "D:\\Python Scripts\\shares Analysis\\preprocessed_5_min_equity_data\\"
 files_list = next(walk(mypath), (None, None, []))[2]  # This would extract all the files(shares) names present in the folder
 
 result_summary_for_NSE_stocks = []
@@ -195,8 +196,8 @@ for stock in files_list:
                         bull_harami = -1
                         call_target_hit_dates.append(str(df.iloc[i]["dt"]))
                         # print("Call Target Hit")
-                    if (df.iloc[i]['low'] < stoploss
-                        # and i > bull_harami_candle_number + 3                    ############## changing from initial condition, uncomment to bring back it to normal both in call and put
+                    elif (df.iloc[i]['low'] < stoploss                        # if changed to elif ------------- compare results
+                        and i > bull_harami_candle_number + 3
                         ):
                         sell = 1
                         trade = 0
@@ -217,8 +218,8 @@ for stock in files_list:
                         bear_harami = -1
                         put_target_hit_dates.append(str(current_date))
                         #print("Put Target Hit")
-                    if (df.iloc[i]['high'] > stoploss
-                        #and i > bear_harami_candle_number + 3
+                    elif (df.iloc[i]['high'] > stoploss
+                        and i > bear_harami_candle_number + 3
                         ):
                         buy = 1
                         trade = 0
@@ -394,9 +395,9 @@ for stock in files_list:
                                               # delta_days
                                               ])
         if (call_target_hit > 0) or (call_sl_hit > 0):
-            print(count, '\t', stock[:-4], '\t\t', bull_harami_count, '\t\t', (call_target_hit, call_sl_hit))
+            print(count, '\t', stock[:-4], '\t\t', bull_harami_count, '\t\t', 'Call --> ', (call_target_hit, call_sl_hit))
         elif (put_target_hit > 0) or (put_sl_hit > 0):
-            print(count, '\t', stock[:-4], '\t\t', bear_harami_count, '\t\t', (put_target_hit, put_sl_hit))
+            print(count, '\t', stock[:-4], '\t\t', bear_harami_count, '\t\t', 'Put --> ', (put_target_hit, put_sl_hit))
         else:
             print(count)
         bull_harami_count = 0
