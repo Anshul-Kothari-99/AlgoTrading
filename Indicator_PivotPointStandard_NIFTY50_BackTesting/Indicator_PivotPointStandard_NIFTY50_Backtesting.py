@@ -11,7 +11,7 @@ import csv
 import pandas as pd
 from os import walk
 
-mypath = "D:\\NSE_Stocks_5m_hist_data\\"
+mypath = "D:\\NSE_Stocks_5m_hist_data\\pre processed data files\\"
 files_list = next(walk(mypath), (None, None, []))[2] # This would extract all the files(shares) names present in the folder
 
 result_summary_for_NSE_stocks = []
@@ -19,9 +19,9 @@ failed_for =[]
 count = 0
 
 # HyperParameters - to be tunned
-target_percentage_of_profit_for_call = 1.115  #0.92 with 1.0002 confirmation factor #0.94   1.115
-target_percentage_of_sl_for_call = 0.38  #0.495      0.38
-call_confirmation = 1.0002
+target_percentage_of_profit_for_call = 0.8  #0.92 with 1.0002 confirmation factor #0.94   1.115
+target_percentage_of_sl_for_call = 0.38  #0.495      0.38        # should be more than confirmation factor
+call_confirmation = 1.0035    # 1.0002  
 
 target_percentage_of_profit_for_put = 0.89   #0.83 with 0.9998 confirmation factor #0.89
 target_percentage_of_sl_for_put = 0.495  #0.535 #0.54      #495
@@ -30,116 +30,124 @@ put_confirmation = 0.9998      # 0.9998
 timeframe = 5    # Enter Timeframe in minutes(5m/15m/30m only) - enter timeframe less than 30mins
 
 for stock in files_list:
-    #stock = 'NIFTY50_5min.csv'
-    testcases_file_path = mypath + stock    
+    # stock = 'NIFTY50_5min.csv'
+    testcases_file_path = mypath + stock
     count += 1
     
     try:
-        with open(testcases_file_path, mode="r") as inputFile:
-            inputReader = csv.DictReader(inputFile)
-            
-            df = pd.DataFrame(inputReader)    
-            df['dt'] = df['Date'] + ' ' + df ['Time']
-            df.rename(columns = {"Open":"open", "High":"high", "Low":"low", "Close":"close"},inplace=True)
-            df.dt = pd.to_datetime(df.dt)
-            df.drop(['Date', 'Time', 'Volume'], axis=1, inplace=True)
-            df['high'] = df['high'].astype(float)
-            df['low'] = df['low'].astype(float)
-            df['close'] = df['close'].astype(float)
-            df['open'] = df['open'].astype(float)    
-            #df = df[-1600:]  # To limit the data / Number of days - 1600 = Approx 31 days
-            #print(df)
-        
-        result = []
-        result_summary = []
-        daysCount = 0
-        x = 0
-        
-        while df.iloc[x]['dt'].time() != datetime.time(9,15,0):
-            x += 1
-        df = df[x:]
-        
-        # print(datetime.date(2015,2,16).weekday(), datetime.date(2015,2,16))
-        # saturday - 5
-        # sunday - 6
-        # condition: df.iloc[i]["dt"].date().weekday() != 6 and df.iloc[i]["dt"].date().weekday() != 5
-                
+        df = pd.read_csv(testcases_file_path)
+        df.dt = pd.to_datetime(df.dt)
+        df['high'] = df['high'].astype(float)
+        df['low'] = df['low'].astype(float)
+        df['close'] = df['close'].astype(float)
+        df['open'] = df['open'].astype(float)
+        # df = df[4028:4105]  # To limit the data / Number of days - 1600 = Approx 31 days
+        # print(df)
+
         resistance = -1
-        intraday_call_close = []
-        intraday_put_close = []
-        call_target_hit = 0
-        call_sl_hit = 0
-        put_target_hit = 0
-        put_sl_hit = 0
         support = 0
         entry_price = 0
         target_price = 0
         stoploss = 0
-        
         next_support = -1
         next_resistance = -1
         count_no_trades = 0
-        
-        current_date = df.iloc[0]["dt"].date()
-        date_exception = []
-        start_date = current_date 
-        call_target_hit_dates = []
-        call_sl_hit_dates = []
-        call_closed_dates = []
-        call_close_or_high = 'close'
-        put_close_or_low = 'close'
-        put_target_hit_dates = []
-        put_sl_hit_dates = []
-        put_closed_dates = []
-        no_trades_dates = []
-        
         high = 0
         low = 99999
         buy = 0
         sell = 0
         trade = 0
         trade_status = -1
+
+        result = []
+        result_summary = []
+        daysCount = 0
+        current_date = df.iloc[0]["dt"].date()
+        date_exception = []
+        start_date = current_date
+        no_trades_dates = []
+
+        intraday_call_close = []
+        intraday_put_close = []
+        call_target_hit = 0
+        call_sl_hit = 0
+        put_target_hit = 0
+        put_sl_hit = 0
+        call_target_hit_dates = []
+        call_target_hit_days = []
+        call_sl_hit_dates = []
+        call_sl_hit_days = []
+        call_closed_dates = []
+        call_closed_days = []
+        call_close_or_high = 'close'
+        put_close_or_low = 'close'
+        put_target_hit_dates = []
+        put_target_hit_days = []
+        put_sl_hit_dates = []
+        put_sl_hit_days = []
+        put_closed_dates = []
+        put_closed_days = []
+
+        trade_status_encoding = {-1: 'No Trade Taken',
+                                 1: 'Call - Buy',
+                                 2: 'Call Target Hit',
+                                 3: 'Call StopLoss Hit',
+                                 4: 'IntraDay Timeout - Call Entry Closed',
+                                 11: 'Put - Buy',
+                                 12: 'Put Target Hit',
+                                 13: 'Put StopLoss Hit',
+                                 14: 'IntraDay Timeout - Put Entry Closed'}
         
-        trade_status_encoding = {-1: 'No Trade Taken', 
-                                 1:'Call - Buy', 
-                                 2:'Call Target Hit', 
-                                 3:'Call StopLoss Hit', 
-                                 4:'IntraDay Timeout - Call Entry Closed', 
-                                 11:'Put - Buy', 
-                                 12:'Put Target Hit', 
-                                 13:'Put StopLoss Hit', 
-                                 14:'IntraDay Timeout - Put Entry Closed'}
-        
+        weekdays = {0: "Monday",
+                    1: "Tuesday",
+                    2: "Wednesday",
+                    3: "Thursday",
+                    4: "Friday",
+                    5: "Saturday",
+                    6: "Sunday"            
+            }
+
         result.append(['Trade Date', 'Closing Price', 'Resistance', 'Support', 'Entry Price', 'StopLoss', 'Target Price', 'Trade Status'])
 
         #print("Starting Date ----------> ", start_date)
         
         for i in range(len(df)):
+
             if df.iloc[i]["dt"].date() == current_date:     
+
                 debug_candle = str(df.iloc[i]["dt"].time())
+
                 if (resistance != -1):
                     # Check if resistance check is passed
                     resistance = next_resistance
                     support = next_support
                     
-                    if (df.iloc[i][call_close_or_high] > resistance 
+                    green_candle_length = (df.iloc[i]['close'] - df.iloc[i]['open']) / df.iloc[i]['open'] * 100
+                    if (df.iloc[i][call_close_or_high] > resistance  # Check if candle was closed above resistance
+                    and df.iloc[i]['close'] > df.iloc[i]['open']  # Check the cancle which closed above resistance should be a Green Candle and not Red
+                    and green_candle_length >= 1 # Check Green candle length to be more than 1%
+                    and ((df.iloc[i]['close'] - resistance)/df.iloc[i]['close']*100) > green_candle_length*0.2    # condition check that 20% length of Candle should be over the resistance
                     and trade == 0 and buy != 1 and sell != 1
-                    and df.iloc[i]["dt"].time() <= datetime.time(14,30,0) 
+                    and df.iloc[i]["dt"].time() <= datetime.time(14, 0, 0) 
                     ):
                         
-                        if call_close_or_high == 'high':
+                        if call_close_or_high == 'close':
+                            next_resistance = df.iloc[i]['close'] * call_confirmation
+                            call_close_or_high = 'high'
+                            candle_at_which_trade_entry_price_is_decided = i
+
+                        if (call_close_or_high == 'high'
+                            and i > candle_at_which_trade_entry_price_is_decided      # Trade not to be taken in which trade entry price is decided, entry should not be taken here as entry price would be calculated after candle closes (close*confirmation factor)
+                            and i < candle_at_which_trade_entry_price_is_decided + 25):   # Trade not to be taken x candles after the candle from which resistance price is set
                             trade = 1
                             buy = 1
                             entry_price = resistance
                             target_price = entry_price * ((100+target_percentage_of_profit_for_call)/100)
                             stoploss = entry_price * ((100-target_percentage_of_sl_for_call)/100)
                             trade_status = 1
+                            candle_at_which_trade_entered = i
                             #print("Call - Buy")
-                            
-                        if call_close_or_high == 'close':
-                            next_resistance = df.iloc[i]['close'] * call_confirmation
-                            call_close_or_high = 'high'
-                        
+                                                    
                     if buy == 1 and sell == 0 and trade == 1:
                         # Call Status Checks
                         if (df.iloc[i]['high'] > target_price):
@@ -148,22 +156,23 @@ for stock in files_list:
                             call_target_hit = call_target_hit + 1
                             trade_status = 2
                             call_close_or_high = 'close'
-                            call_target_hit_dates.append(str(current_date))
+                            call_target_hit_dates.append([str(current_date), weekdays[current_date.weekday()]])
                             #print("Call Target Hit")
-                        if (df.iloc[i]['low'] < stoploss):
+                        elif (df.iloc[i]['low'] < stoploss
+                              and i != candle_at_which_trade_entered):    # Stoploss restricted to hit in the candle in which entry is taken
                             sell = 1
                             trade = 0
                             call_sl_hit = call_sl_hit + 1
                             trade_status = 3
                             call_close_or_high = 'close'
-                            call_sl_hit_dates.append(str(current_date))
+                            call_sl_hit_dates.append([str(current_date), weekdays[current_date.weekday()]])
                             #print("Call Stoploss Hit")                    
-                            
+                    '''
                     if (df.iloc[i][put_close_or_low] < support 
                     and trade == 0 and buy != 1 and sell != 1
                     and df.iloc[i]["dt"].time() <= datetime.time(14,30,0) 
                     ):
-                        
+
                         if put_close_or_low == 'low':
                             sell = 1
                             trade = 1
@@ -172,11 +181,11 @@ for stock in files_list:
                             stoploss = entry_price * ((100+target_percentage_of_sl_for_put)/100)
                             trade_status = 11
                             #print("Put - Buy")
-                        
+
                         if put_close_or_low == 'close':
                             next_support = df.iloc[i]['close'] * put_confirmation
                             put_close_or_low = 'low'
-                    
+
                     if buy == 0 and sell == 1 and trade == 1:
                         # Put Status Check
                         if (df.iloc[i]['low'] < target_price):
@@ -195,7 +204,7 @@ for stock in files_list:
                             put_close_or_low = 'close'
                             put_sl_hit_dates.append(str(current_date))
                             #print("Put Stoploss Hit")
-                        
+                    '''    
                     if buy == 1 and sell == 0 and trade == 1 and df.iloc[i]["dt"].time() >= datetime.time(15,10,0):
                         sell = 1
                         trade = 0
@@ -203,10 +212,9 @@ for stock in files_list:
                         intraday_call_close.append(profit_percentage)
                         trade_status = 4
                         call_close_or_high = 'close'
-                        call_closed_dates.append(str(current_date))
+                        call_closed_dates.append([str(current_date), weekdays[current_date.weekday()]])
                         #print("IntraDay Timeout - Call Entry Closed")
-                        
-                        
+                    '''      
                     if buy == 0 and sell == 1 and trade == 1 and df.iloc[i]["dt"].time() >= datetime.time(15,10,0):
                         buy = 1
                         trade = 0
@@ -216,7 +224,7 @@ for stock in files_list:
                         put_close_or_low = 'close'
                         put_closed_dates.append(str(current_date))
                         #print("IntraDay Timeout - Put Entry Closed")
-                
+                    '''
                 if (df.iloc[i]["high"] > high):
                     high = df.iloc[i]["high"]          # Day high
                     #print('resistance_temp_high = ', high)
@@ -245,6 +253,7 @@ for stock in files_list:
         
                     p = (high + low + close)/3
                     next_resistance = (p*2) - low
+                    # next_resistance = p + (high - low)
                     next_support = (p*2) - high
                     
                     high = 0
@@ -271,7 +280,7 @@ for stock in files_list:
         
         resistance = -1
         
-        print('*********', count, ' - ' + stock + ' *********')
+        print('*********', count, ' - ' + stock[:-7] + ' *********')
         '''      
         print("Count of Call Target Hits = ", call_target_hit)
         result_summary.append(["Count of Call Target Hits = ", call_target_hit])
@@ -343,16 +352,22 @@ for stock in files_list:
                                               len(intraday_call_close),
                                               avg_call,
                                               call_sl_hit,
-                                              put_target_hit,
-                                              len(intraday_put_close),
-                                              avg_put,
-                                              put_sl_hit,
+                                              call_target_hit_dates,
+                                              call_sl_hit_dates,
+                                              call_closed_dates,
+                                              # put_target_hit,
+                                              # len(intraday_put_close),
+                                              # avg_put,
+                                              # put_sl_hit,
+                                              # put_target_hit_dates,
+                                              # put_sl_hit_dates,
+                                              # put_closed_dates,
                                               count_no_trades,
                                               net_call,
-                                              net_put,
-                                              net_call + net_put,
-                                              start_date,
-                                              current_date,
+                                              #net_put,
+                                              #net_call + net_put,
+                                              #start_date,
+                                              #current_date,
                                               daysCount,
                                               #delta_days
                                               ])
@@ -369,18 +384,27 @@ result_summary_for_NSE_stocks.columns = ["Stock Symbol",
                                          "Call closed for Intraday Count", 
                                          "Call Avg %",
                                          "Call StopLoss Hits Count", 
-                                         "Put Target Hits Count", 
-                                         "Put closed for Intraday Count", 
-                                         "Put Avg %", 
-                                         "Put StopLoss Hits Count", 
+                                         "Call Target Hit Dates",
+                                         "Call SL Hit Dates",
+                                         "Call Closed Dates",
+                                         # "Put Target Hits Count", 
+                                         # "Put closed for Intraday Count", 
+                                         # "Put Avg %", 
+                                         # "Put StopLoss Hits Count", 
+                                         # "Put Target Hit Dates",
+                                         # "Put Target Hit Days",
+                                         # "Put SL Hit Dates",
+                                         # "Put SL Hit Days",
+                                         # "Put Closed Dates",
+                                         # "Put Closed Days",
                                          "No Trades Taken Count", 
                                          "Net Call Returns", 
-                                         "Net Put Returns",
-                                         "Net Returns",
-                                         "Starting Date",
-                                         "Last Date",
+                                         # "Net Put Returns",
+                                         # "Net Returns",
+                                         # "Starting Date",
+                                         # "Last Date",
                                          "Number of days run",
-                                         #"Delta Days"
+                                         # "Delta Days"
                                          ]
 
 print(result_summary_for_NSE_stocks)
