@@ -156,7 +156,7 @@ for stock in files_list:
                     and df.iloc[i]['open'] < df.iloc[i+1]['low']
                     and df.iloc[i]['close'] > df.iloc[i+1]['high']):
                     bear_harami_count += 1
-                    bear_harami_instance.append(str(df.iloc[i]['dt']))
+                    bear_harami_instance.append([str(current_date), current_date.weekday()])
 
                     put_green_candle_length = (df.iloc[i]['close'] - df.iloc[i]['open']) / df.iloc[i]['open'] * 100
                     if (bear_harami == -1
@@ -194,7 +194,7 @@ for stock in files_list:
                         call_target_hit = call_target_hit + 1
                         trade_status = 2
                         bull_harami = -1
-                        call_target_hit_dates.append(str(df.iloc[i]["dt"]))
+                        call_target_hit_dates.append([str(current_date), current_date.weekday()])
                         # print("Call Target Hit")
                     elif (df.iloc[i]['low'] < stoploss                        # if changed to elif ------------- compare results
                         and i > bull_harami_candle_number + 3
@@ -204,7 +204,7 @@ for stock in files_list:
                         call_sl_hit = call_sl_hit + 1
                         trade_status = 3
                         bull_harami = -1
-                        call_sl_hit_dates.append(str(df.iloc[i]["dt"]))
+                        call_sl_hit_dates.append([str(current_date), current_date.weekday()])
                         # print("Call Stoploss Hit")
 
                 if (buy == 0 and sell == 1 and trade == 1 and bear_harami == 1
@@ -216,7 +216,7 @@ for stock in files_list:
                         put_target_hit = put_target_hit + 1
                         trade_status = 12
                         bear_harami = -1
-                        put_target_hit_dates.append(str(current_date))
+                        put_target_hit_dates.append([str(current_date), current_date.weekday()])
                         #print("Put Target Hit")
                     elif (df.iloc[i]['high'] > stoploss
                         and i > bear_harami_candle_number + 3
@@ -226,7 +226,7 @@ for stock in files_list:
                         put_sl_hit = put_sl_hit + 1
                         trade_status = 13
                         bear_harami = -1
-                        put_sl_hit_dates.append(str(current_date))
+                        put_sl_hit_dates.append([str(current_date), current_date.weekday()])
                         #print("Put Stoploss Hit")
                 
                 if (buy == 1 and sell == 0 and trade == 1 and bull_harami == 1
@@ -238,7 +238,7 @@ for stock in files_list:
                     trade_status = 4
                     bull_harami = -1
                     resistance = 999999
-                    call_closed_dates.append(str(df.iloc[i]["dt"]))
+                    call_closed_dates.append([str(current_date), current_date.weekday()])
                     # print("IntraDay Timeout - Call Entry Closed")
 
                 if (buy == 0 and sell == 1 and trade == 1 and bear_harami == 1
@@ -250,7 +250,7 @@ for stock in files_list:
                     trade_status = 14
                     bear_harami = -1
                     support = 0
-                    put_closed_dates.append(str(current_date))
+                    put_closed_dates.append([str(current_date), current_date.weekday()])
                     #print("IntraDay Timeout - Put Entry Closed")
 
                 '''
@@ -268,7 +268,7 @@ for stock in files_list:
 
                     if trade_status == -1:
                         count_no_trades += 1
-                        no_trades_dates.append(str(current_date))
+                        no_trades_dates.append([str(current_date), current_date.weekday()])
                         # print(trade_status_encoding[trade_status])
 
                     high = 0
@@ -282,7 +282,7 @@ for stock in files_list:
                     try:
                         current_date = df.iloc[i+1]["dt"].date()
                     except:
-                        date_exception.append(str(current_date))
+                        date_exception.append([str(current_date), current_date.weekday()])
                         pass
                     daysCount += 1
                     # print('Day\'s Count = ', daysCount)
